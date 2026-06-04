@@ -1,0 +1,163 @@
+===========================================================================
+                BEEBO LANGUAGE — OPS OPERATIONS LIST
+              (Polish Notation / Reverse Polish Notation)
+===========================================================================
+
+OPS is a stack-based intermediate representation used by the Beebo
+compiler-interpreter. The OPS interpreter is a stack machine that
+executes instructions sequentially from the operation list.
+
+OPS INSTRUCTION FORMAT
+----------------------
+Each OPS instruction is a tuple: (OPCODE, [operand])
+
+Instructions are stored as a linear list. Control flow is handled
+through labels and jump instructions (using label numbers).
+
+
+OPERATION LIST
+--------------
+
+STACK OPERATIONS:
+  OP_PUSH_INT n      Push integer constant n onto the data stack
+  OP_PUSH_REAL r     Push real constant r onto the data stack
+  OP_PUSH_STR s      Push string constant s onto the data stack
+  OP_PUSH_ADDR name  Push variable address (name) onto the stack
+  OP_LOAD            Pop address, load value from memory, push it
+  OP_STORE           Pop value, pop address, store value to memory
+
+ARRAY OPERATIONS:
+  OP_INDEX           Pop index (int), pop base addr, push array address
+  OP_INDEX2          Pop index2, pop array addr, push 2D array address
+  OP_ALLOC_ARR dims  Pop size, pop name, allocate array of given dimensions
+
+ARITHMETIC OPERATIONS:
+  OP_ADD             Pop b, pop a, push a + b
+  OP_SUB             Pop b, pop a, push a - b
+  OP_MUL             Pop b, pop a, push a * b
+  OP_DIV             Pop b, pop a, push a / b
+  OP_NEG             Pop a, push -a
+
+COMPARISON OPERATIONS:
+  OP_EQ              Pop b, pop a, push (a == b) as int (1/0)
+  OP_NE              Pop b, pop a, push (a != b) as int (1/0)
+  OP_LT              Pop b, pop a, push (a < b) as int (1/0)
+  OP_GT              Pop b, pop a, push (a > b) as int (1/0)
+  OP_LE              Pop b, pop a, push (a <= b) as int (1/0)
+  OP_GE              Pop b, pop a, push (a >= b) as int (1/0)
+
+LOGICAL OPERATIONS:
+  OP_NOT             Pop a, push NOT a as int (1/0)
+  OP_OR              Pop b, pop a, push (a OR b) as int (1/0)
+  OP_AND             Pop b, pop a, push (a AND b) as int (1/0)
+
+CONTROL FLOW OPERATIONS:
+  OP_JMP label       Unconditional jump to label
+  OP_JMPF label      Pop condition; if false, jump to label
+  OP_LABEL n         Define label n (no runtime effect)
+  
+INPUT/OUTPUT OPERATIONS:
+  OP_INPUT_INT       Read integer from stdin, push to stack
+  OP_INPUT_REAL      Read real number from stdin, push to stack
+  OP_INPUT_STR       Read value from stdin: tries int→real→string, push to stack
+  OP_OUTPUT          Pop value from stack, print to stdout
+
+FUNCTION CALLS:
+  OP_CALL name       Call standard function:
+                     - sqrt: square root (real)
+                     - exp:  exponential e^x (real)
+                     - log:  natural logarithm (real)
+                     - sin:  sine (real, radians)
+                     - cos:  cosine (real, radians)
+                     - abs:  absolute value (real/int)
+                     Each pops 1 argument, pushes 1 result
+
+USER-DEFINED FUNCTION OPERATIONS:
+  OP_FUNC_ENTRY name label param_count
+                     Register user-defined function:
+                     name = function identifier
+                     label = address of first instruction
+                     param_count = number of parameters
+  OP_CALL_USER       Call user-defined function:
+                     Expects n arguments and function address on stack
+                     Pushes return value after execution
+  OP_RET             Return from user-defined function:
+                     Pop return value from function's frame
+                     Restore previous frame, push return value
+  OP_ARG name        Pop argument from stack, store as parameter:
+                     Used at function entry to bind arguments to params
+
+HALT:
+  OP_HALT            Stop program execution
+
+
+EXAMPLE: OPS for "x = (a + b) * c"
+
+  OP_PUSH_ADDR a      # Push address of 'a'
+  OP_LOAD             # Load value of 'a'
+  OP_PUSH_ADDR b      # Push address of 'b'
+  OP_LOAD             # Load value of 'b'
+  OP_ADD              # a + b
+  OP_PUSH_ADDR c      # Push address of 'c'
+  OP_LOAD             # Load value of 'c'
+  OP_MUL              # (a + b) * c
+  OP_PUSH_ADDR x      # Push address of 'x'
+  OP_STORE            # Store to 'x'
+  OP_HALT             # Stop
+
+
+EXAMPLE: OPS for "if (x > 5) { output x }"
+
+  OP_PUSH_ADDR x
+  OP_LOAD
+  OP_PUSH_INT 5
+  OP_GT
+  OP_JMPF L1          # Jump to L1 if false
+  OP_PUSH_ADDR x
+  OP_LOAD
+  OP_OUTPUT
+  OP_JMP L2           # Jump to end
+  OP_LABEL L1
+  OP_LABEL L2
+  OP_HALT
+
+
+EXAMPLE: OPS for "arr[3] = 10"
+
+  OP_PUSH_ADDR arr    # Push array base address
+  OP_PUSH_INT 3       # Push index
+  OP_INDEX            # Compute arr[3] address
+  OP_PUSH_INT 10      # Push value
+  OP_STORE            # Store 10 at arr[3]
+  OP_HALT
+
+
+EXAMPLE: OPS for "y = sqrt(x)"
+
+  OP_PUSH_ADDR x
+  OP_LOAD             # Load value of x
+  OP_CALL sqrt        # Call sqrt function
+  OP_PUSH_ADDR y
+  OP_STORE            # Store result in y
+  OP_HALT
+
+
+TYPE HANDLING IN OPS
+--------------------
+The interpreter supports automatic type coercion:
+- Integer + Integer → Integer
+- Integer + Real → Real (automatic promotion)
+- Real + Real → Real
+- Division always produces Real
+- String + String → String concatenation
+- Comparison operators work across Int and Real types
+- Boolean results are stored as Int (1 = true, 0 = false)
+
+MEMORY MODEL
+------------
+- Variables: identified by name (string), stored in hash table
+- 1D arrays: variable holds V_ARR of var_value array
+- 2D arrays: variable holds V_MAT of var_value array array
+- Array elements are accessed via index operations
+- Uninitialized variables default to V_INT 0
+- Arrays are dynamically allocated with OP_ALLOC_ARR

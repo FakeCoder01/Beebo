@@ -1,0 +1,6 @@
+func f() { return 42 };
+schema Point { x; y };
+p = Point{x: 10, y: 20};
+p.x = 99;
+output p.x;
+output "\ndone"

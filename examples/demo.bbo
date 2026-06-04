@@ -1,0 +1,35 @@
+
+x = 10;
+y = 3;
+output "x + y * 2 = ";
+output x + y * 2;
+output "\n";
+
+n = 5;
+output "Enter " + n + " numbers:\n";
+
+schema Point { x; y };
+p = Point{x: 10, y: 20};
+output "Point: x=";
+output p.x;
+output " y=";
+output p.y;
+output "\n";
+
+p.x = 42;
+output "Updated x=";
+output p.x;
+output "\n";
+
+func square(n) {
+    return n * n
+};
+output "square(7) = ";
+output square(7);
+output "\n";
+
+output "Enter a value: ";
+input val;
+output "You entered: ";
+output val;
+output "\nDone.\n"

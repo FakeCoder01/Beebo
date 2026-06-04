@@ -1,0 +1,3 @@
+(executable
+ (name main)
+ (modules types lexer grammar parser interpreter main))

@@ -1,0 +1,93 @@
+// Factorial
+func_factorial = 1;
+output "\n=== Beebo Math Library ===";
+
+n = 5;
+output "\nTesting factorial of 5:";
+
+result = 1;
+i = 1;
+while (i <= n) {
+    result = result * i;
+    i = i + 1
+};
+output result;
+
+// Square root test
+output "\nTesting sqrt function:";
+x = 16.0;
+output sqrt(x);
+
+x = 2.0;
+output "\nsqrt(2.0) =";
+output sqrt(x);
+
+// Exponential function
+output "\nTesting exp function:";
+x = 1.0;
+output "\nexp(1.0) =";
+output exp(x);
+
+// Natural logarithm
+output "\nTesting log function:";
+x = 2.718281828;
+output "\nlog(e) =";
+output log(x);
+
+// Trigonometric functions
+output "\nTesting sin function:";
+x = 0.0;
+output "\nsin(0) =";
+output sin(x);
+
+x = 1.570796327;
+output "\nsin(pi/2) =";
+output sin(x);
+
+output "\nTesting cos function:";
+x = 0.0;
+output "\ncos(0) =";
+output cos(x);
+
+// Absolute value
+output "\nTesting abs function:";
+x = -15.5;
+output "\nabs(-15.5) =";
+output abs(x);
+
+x = 42;
+output "\nabs(42) =";
+output abs(x);
+
+// Combined operations
+output "\nTesting combined: sqrt(exp(1.0))";
+output sqrt(exp(1.0));
+
+output "\nTesting combined: log(exp(2.0))";
+output log(exp(2.0));
+
+// Quadratic formula: ax^2 + bx + c = 0
+output "\n=== Quadratic Formula ===";
+a = 1.0;
+b = -5.0;
+c = 6.0;
+
+discriminant = b * b - 4.0 * a * c;
+output "\nDiscriminant:";
+output discriminant;
+
+root1 = (-b + sqrt(discriminant)) / (2.0 * a);
+root2 = (-b - sqrt(discriminant)) / (2.0 * a);
+
+output "\nRoot 1:";
+output root1;
+output "\nRoot 2:";
+output root2;
+
+// Hypotenuse
+output "\n=== Hypotenuse ===";
+side_a = 3.0;
+side_b = 4.0;
+hyp = sqrt(side_a * side_a + side_b * side_b);
+output "\nHypotenuse of 3 and 4:";
+output hyp;

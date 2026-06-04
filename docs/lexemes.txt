@@ -1,0 +1,190 @@
+===========================================================================
+                BEEBO LANGUAGE — LEXEME TABLE
+               (Token types with numbers and machine transitions)
+===========================================================================
+
+LEXEME CLASSIFICATION TABLE
+---------------------------
+ Number  Token Type     Description              Examples
+ ------  -----------    -----------              --------
+   1      T_IDENT       Identifier               x, arr, myVar, _temp
+   2      T_INT         Integer literal          0, 42, -7, 1000
+   3      T_REAL        Real number literal      3.14, 0.5, 1e10, -2.5
+   4      T_STRING      String literal           "hello", ""
+   5      T_KW_IF       Keyword 'if'             if
+   6      T_KW_ELSE     Keyword 'else'           else
+   7      T_KW_WHILE    Keyword 'while'          while
+   8      T_KW_FOR      Keyword 'for'            for
+   9      T_KW_INPUT    Keyword 'input'          input
+  10      T_KW_OUTPUT   Keyword 'output'         output
+  11      T_KW_FUNC     Keyword 'func'           func
+  12      T_KW_RETURN   Keyword 'return'         return
+   13      T_KW_SCHEMA   Keyword 'schema'         schema
+   14      T_KW_SQRT     Function 'sqrt'          sqrt
+   15      T_KW_EXP      Function 'exp'           exp
+   16      T_KW_LOG      Function 'log'           log
+   17      T_KW_SIN      Function 'sin'           sin
+   18      T_KW_COS      Function 'cos'           cos
+   19      T_KW_ABS      Function 'abs'           abs
+   20      T_PLUS        Plus operator            +
+   21      T_MINUS       Minus operator           -
+   22      T_STAR        Multiply operator        *
+   23      T_SLASH       Divide operator          /
+   24      T_EQ          Assignment               =
+   25      T_LT          Less than                <
+   26      T_GT          Greater than             >
+   27      T_LE          Less than or equal       <=
+   28      T_GE          Greater than or equal    >=
+   29      T_EQEQ        Equality test            ==
+   30      T_NE          Not equal                !=
+   31      T_AND         Logical AND              &&
+   32      T_OR          Logical OR               ||
+   33      T_NOT         Logical NOT              !
+   34      T_LPAREN      Left parenthesis         (
+   35      T_RPAREN      Right parenthesis        )
+   36      T_LBRACE      Left brace               {
+   37      T_RBRACE      Right brace              }
+   38      T_LBRACKET    Left bracket             [
+   39      T_RBRACKET    Right bracket            ]
+   40      T_SEMICOLON   Semicolon                ;
+   41      T_COMMA       Comma                    ,
+   42      T_DOT         Dot                      .
+   43      T_COLON       Colon                    :
+   44      T_EOF         End of file              <eof>
+
+
+FINITE STATE MACHINE TRANSITION TABLE
+--------------------------------------
+States:
+  S0 = START        (initial state)
+  S1 = IDENTIFIER   (reading identifier)
+  S2 = NUMBER       (reading integer)
+  S3 = REAL_FRAC    (reading real fractional part)
+  S4 = STRING       (reading string literal)
+  S5 = OPERATOR     (reading operators)
+  S6 = COMMENT_LINE (// single-line comment)
+  S7 = COMMENT_BLOCK (/* multi-line comment)
+   S8 = COMMENT_BLOCK_END (expecting */)
+   S9 = ESCAPE       (escape sequence in string)
+   S_ERR = ERROR
+
+Character classes:
+  L  = LETTER       (a-z, A-Z, _)
+  D  = DIGIT        (0-9)
+  .  = DOT          (.)
+   "  = QUOTE        (")
+   \  = BACKSLASH    (\)
+  +  = PLUS         (+)
+  -  = MINUS        (-)
+  *  = STAR         (*)
+  /  = SLASH        (/)
+  =  = EQUALS       (=)
+  <  = LT           (<)
+  >  = GT           (>)
+  (  = LPAREN       (()
+  )  = RPAREN       ())
+  {  = LBRACE       ({)
+  }  = RBRACE       (})
+  [  = LBRACKET     ([)
+  ]  = RBRACKET     (])
+  ;  = SEMICOLON    (;)
+  ,  = COMMA        (,)
+  :  = COLON        (:)
+  !  = EXCLAM       (!)
+  &  = AMPERSAND    (&)
+  |  = PIPE         (|)
+  \n = NEWLINE      (line feed)
+  spc= WHITESPACE   (space, tab, \r)
+  o  = OTHER        (any other character)
+
+TRANSITION TABLE (State, Class) -> Next State
+----------------------------------------------
+From S0 (START):
+  L   → S1    (start identifier)
+  D   → S2    (start number)
+   .   → S5    (dot is an operator)
+   "   → S4    (start string)
+   + - * / = < > ( ) { } [ ] ; , : ! & | → S5 (start operator)
+  \n  → S0    (skip newline)
+  spc → S0    (skip whitespace)
+  o   → S_ERR
+
+From S1 (IDENTIFIER):
+  L D → S1    (continue identifier)
+   .   → S0    (dot terminates identifier, backtrack)
+  o   → S0    (end identifier, backtrack)
+  EOF → S0    (end of file)
+
+From S2 (NUMBER):
+  D   → S2    (continue integer)
+   .   → S3    (start fractional part — handled in code for reals)
+  L   → S_ERR (letters after number = error)
+  o   → S0    (end number)
+  EOF → S0
+
+From S3 (REAL_FRAC):
+  D   → S3    (continue fraction)
+  o   → S0    (end real number)
+  EOF → S0
+
+From S4 (STRING):
+   "   → S0    (end string)
+   \   → S9    (start escape sequence)
+   \n  → S_ERR (unterminated string)
+   o   → S4    (continue string)
+   EOF → S_ERR
+
+From S5 (OPERATOR):
+  If current buffer + next char forms compound op (<=, >=, ==, !=, &&, ||):
+    → S0    (end compound operator)
+  Else:
+    → S0    (end simple operator)
+
+From S6 (COMMENT_LINE):
+  \n  → S0    (end comment)
+  o   → S6    (continue comment)
+  EOF → S0
+
+From S7 (COMMENT_BLOCK):
+  *   → S8    (possible end of comment)
+  o   → S7    (continue comment)
+  EOF → S_ERR (unterminated comment)
+
+From S8 (COMMENT_BLOCK_END):
+  /   → S0    (end block comment)
+  *   → S8    (stay)
+  o   → S7    (back to comment)
+
+From S9 (ESCAPE):
+   n   → S4    (newline — \n)
+   \   → S4    (backslash — \\)
+   "   → S4    (double quote — \")
+   t   → S4    (tab — \t)
+   o   → S4    (literal — no special meaning)
+   EOF → S_ERR
+
+From S_ERR (ERROR):
+  o   → S0    (recover by skipping char)
+
+
+KEYWORD TABLE
+-------------
+Lexeme    Token Type
+------    ----------
+if        T_KW_IF
+else      T_KW_ELSE
+while     T_KW_WHILE
+for       T_KW_FOR
+input     T_KW_INPUT
+output    T_KW_OUTPUT
+func      T_KW_FUNC
+return    T_KW_RETURN
+schema    T_KW_SCHEMA
+sqrt      T_KW_SQRT
+exp       T_KW_EXP
+log       T_KW_LOG
+sin       T_KW_SIN
+cos       T_KW_COS
+abs       T_KW_ABS
+
+Any other identifier is T_IDENT.

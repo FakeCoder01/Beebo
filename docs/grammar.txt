@@ -1,0 +1,201 @@
+===========================================================================
+                BEEBO LANGUAGE — KS GRAMMAR
+            (Transformed to Non-strict Greibach Normal Form)
+===========================================================================
+
+ORIGINAL GRAMMAR (before left-recursion elimination)
+----------------------------------------------------
+Program        → StmtList
+StmtList       → Stmt ; StmtList | Stmt
+Stmt           → AssignStmt | IfStmt | WhileStmt | ForStmt 
+                | InputStmt | OutputStmt | Block
+                | FuncDef | ReturnStmt | SchemaDef
+Block          → { StmtList }
+AssignStmt     → id AssignRest
+AssignRest     → = Expr | [ Expr ] AssignArr
+                | ( ArgList ) | . id AssignRest
+AssignArr      → = Expr | [ Expr ] = Expr | ε
+IfStmt         → if ( Cond ) Stmt ElsePart
+ElsePart       → else Stmt | ε
+WhileStmt      → while ( Cond ) Stmt
+ForStmt        → for ( AssignStmt ; Cond ; AssignStmt ) Stmt
+InputStmt      → input LValue
+OutputStmt     → output OutputArg
+OutputArg      → Expr | string
+FuncDef        → func id ( ParamList ) Block
+ParamList      → id ParamListTail | ε
+ParamListTail  → , id ParamListTail | ε
+ReturnStmt     → return Expr
+SchemaDef      → schema id { FieldList }
+FieldList      → id FieldRest
+FieldRest      → ; id FieldRest | ε
+FieldInitList  → id = Expr FieldInitTail
+FieldInitTail  → ; id = Expr FieldInitTail | ε
+LValue         → id LValueRest
+LValueRest     → [ Expr ] LValueArr | ε
+LValueArr      → [ Expr ] | ε
+Cond           → CondTerm CondRest
+CondRest       → || CondTerm CondRest | ε
+CondTerm       → CondFact CondTermRest
+CondTermRest   → && CondFact CondTermRest | ε
+CondFact       → Expr Relop Expr | ! CondFact | ( Cond )
+Expr           → Term ExprTail
+ExprTail       → + Term ExprTail | - Term ExprTail | ε
+Term           → Factor TermTail
+TermTail       → * Factor TermTail | / Factor TermTail | ε
+Factor         → ( Expr ) | int | real | id FactorRest 
+                | FuncName ( Expr ) | - Factor | string
+FactorRest     → [ Expr ] FactorArr | ( ArgList )
+                | . id FactorRest | { FieldInitList } | ε
+FactorArr      → [ Expr ] | ε
+Relop          → < | > | <= | >= | == | !=
+FuncName       → sqrt | exp | log | sin | cos | abs
+ArgList        → Expr ArgListTail | ε
+ArgListTail    → , Expr ArgListTail | ε
+
+
+GRAMMAR IN NON-STRICT GREIBACH NORMAL FORM
+(after left recursion elimination and left factoring)
+----------------------------------------------------
+Non-strict Greibach Normal Form requires that all productions
+start with a terminal symbol. Epsilon productions are allowed.
+
+  Program → StmtList EOF                                       (0)
+
+ StmtList → Stmt StmtListTail                                  (1)
+StmtListTail → ; Stmt StmtListTail                               (2)
+StmtListTail → ε                                                (3)
+
+     Stmt → AssignStmt                                          (4)
+     Stmt → IfStmt                                              (5)
+     Stmt → WhileStmt                                           (6)
+     Stmt → ForStmt                                             (7)
+     Stmt → InputStmt                                           (8)
+     Stmt → OutputStmt                                          (9)
+     Stmt → Block                                              (10)
+
+    Block → { StmtList }                                       (11)
+
+AssignStmt → id AssignRest                                      (12)
+AssignRest → = Expr                                             (13)
+AssignRest → [ Expr ] AssignArr                                 (14)
+AssignArr → = Expr                                              (15)
+AssignArr → [ Expr ] = Expr                                     (16)
+AssignArr → ε                                                  (17)
+
+  IfStmt → if ( Cond ) Stmt ElsePart                            (18)
+ElsePart → else Stmt                                            (19)
+ElsePart → ε                                                   (20)
+
+WhileStmt → while ( Cond ) Stmt                                 (21)
+
+ ForStmt → for ( AssignStmt ; Cond ; AssignStmt ) Stmt          (22)
+
+InputStmt → input LValue                                        (23)
+OutputStmt → output OutputArg                                   (24)
+OutputArg → Expr                                                (25)
+
+  LValue → id LValueRest                                        (26)
+LValueRest → [ Expr ] LValueArr                                 (27)
+LValueArr → [ Expr ]                                            (28)
+LValueArr → ε                                                  (29)
+LValueRest → ε                                                 (30)
+
+    Cond → CondTerm CondRest                                     (31)
+ CondRest → || CondTerm CondRest                                 (32)
+ CondRest → ε                                                  (33)
+
+CondTerm → CondFact CondTermRest                                (34)
+CondTermRest → && CondFact CondTermRest                         (35)
+CondTermRest → ε                                               (36)
+
+CondFact → Expr Relop Expr                                      (37)
+CondFact → ! CondFact                                           (38)
+CondFact → ( Cond )                                             (39)
+
+    Expr → Term ExprTail                                        (40)
+ ExprTail → + Term ExprTail                                     (41)
+ ExprTail → - Term ExprTail                                     (42)
+ ExprTail → ε                                                  (43)
+
+    Term → Factor TermTail                                      (44)
+TermTail → * Factor TermTail                                    (45)
+TermTail → / Factor TermTail                                    (46)
+TermTail → ε                                                   (47)
+
+  Factor → ( Expr )                                             (48)
+  Factor → int                                                  (49)
+  Factor → real                                                 (50)
+  Factor → id FactorRest                                        (51)
+  Factor → FuncName ( Expr )                                    (52)
+  Factor → - Factor                                             (53)
+  Factor → string                                               (54)
+
+FactorRest → [ Expr ] FactorArr                                 (55)
+FactorArr → [ Expr ]                                            (56)
+FactorArr → ε                                                  (57)
+FactorRest → ε                                                 (58)
+
+   Relop → <                                                    (59)
+   Relop → >                                                    (60)
+   Relop → <=                                                   (61)
+   Relop → >=                                                   (62)
+   Relop → ==                                                   (63)
+   Relop → !=                                                   (64)
+
+FuncName → sqrt                                                 (65)
+FuncName → exp                                                  (66)
+FuncName → log                                                  (67)
+FuncName → sin                                                  (68)
+FuncName → cos                                                  (69)
+FuncName → abs                                                  (70)
+
+OutputArg → string                                              (71)
+
+     Stmt → FuncDef                                             (72)
+     Stmt → ReturnStmt                                          (73)
+
+  FuncDef → func id ( ParamList ) Block                         (74)
+
+ParamList → id ParamListTail                                    (75)
+ParamList → ε                                                   (76)
+ParamListTail → , id ParamListTail                              (77)
+ParamListTail → ε                                               (78)
+
+ReturnStmt → return Expr                                        (79)
+
+FactorRest → ( ArgList )                                        (80)
+
+  ArgList → Expr ArgListTail                                    (81)
+  ArgList → ε                                                   (82)
+ArgListTail → , Expr ArgListTail                                (83)
+ArgListTail → ε                                                 (84)
+
+AssignRest → ( ArgList )                                        (85)
+
+     Stmt → SchemaDef                                           (86)
+
+SchemaDef → schema id { FieldList }                             (87)
+
+FieldList → id FieldRest                                        (88)
+FieldRest → ; id FieldRest                                      (89)
+FieldRest → ε                                                   (90)
+
+AssignRest → . id AssignRest                                    (91)
+
+FactorRest → . id FactorRest                                    (92)
+
+FactorRest → { FieldInitList }                                  (93)
+
+FieldInitList → id = Expr FieldInitTail                         (94)
+FieldInitTail → ; id = Expr FieldInitTail                       (95)
+FieldInitTail → ε                                               (96)
+
+
+NOTES:
+- Numbers in parentheses are production IDs used in the parse table
+- The grammar is LL(1) compatible after left factoring
+- Expression precedence: - (unary) > *, / > +, -
+- Operators *, / have higher priority than +, -
+- Parentheses can override default precedence
+- All productions start with terminals (Greibach form property)

@@ -1,0 +1,14 @@
+output "This program has errors";
+
+x = 10;
+y = 20;
+
+z = (x + y * 2;
+
+output z;
+
+a = 5;
+b = 10;
+c = a + b;
+
+output c;

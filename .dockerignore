@@ -1,0 +1,8 @@
+src/_build/
+src/*.cmi
+src/*.cmo
+src/*.cmx
+src/*.o
+src/beebo
+_build/
+.opam/

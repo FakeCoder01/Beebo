@@ -1,0 +1,51 @@
+a = 10;
+b = 3;
+c = 5;
+
+output "\nComplex formula test:";
+output "\na = 10, b = 3, c = 5";
+
+result1 = a + b * c;
+output "\na + b * c =";
+output result1;
+
+result2 = (a + b) * c;
+output "\n(a + b) * c =";
+output result2;
+
+result3 = a * b + c * b - a / c;
+output "\na * b + c * b - a / c =";
+output result3;
+
+result4 = ((a + b) * (c - 1)) / (b + 1);
+output "\n((a + b) * (c - 1)) / (b + 1) =";
+output result4;
+
+pi = 3.14159;
+r = 5.0;
+
+area = pi * r * r;
+output "\nCircle area (pi * r * r) =";
+output area;
+
+circumference = 2.0 * pi * r;
+output "\nCircumference =";
+output circumference;
+
+neg = -a * b;
+output "\n-a * b =";
+output neg;
+
+x = 2;
+y = 3;
+z = (x + y) * (x - y) / (x * y);
+output "\n(x + y) * (x - y) / (x * y) =";
+output z;
+
+output "\nEnter value for input test:";
+input val;
+output "\nYou entered:";
+output val;
+
+output "\nval * 2 + 10 =";
+output val * 2 + 10

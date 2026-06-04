@@ -1,0 +1,33 @@
+output "Enter number of elements (3xN)";
+input n;
+
+arr2[3];
+
+output "\nEnter array elements:\n";
+
+k = 0;
+while(k < 3) {
+    i = 0;
+    arr[n];
+    while (i < n) {
+    	output "Enter element : ";
+    	input arr[i];
+    	i = i + 1
+    };
+    arr2[k] = arr;
+    k = k + 1
+};
+
+output "\nArray:\n";
+k = 0;
+
+while(k < 3) {
+    i = 0;
+    arr = arr2[k];
+    while (i < n) {
+        output arr[i] + " ";
+        i = i + 1
+    };
+    output "\n";
+    k = k + 1
+};

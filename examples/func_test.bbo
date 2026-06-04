@@ -1,0 +1,11 @@
+func square(x) {
+    return x * x
+};
+output square(5);
+
+func greet(name) {
+    output "Hi ";
+    output name;
+    return 0
+};
+greet("Beebo")
