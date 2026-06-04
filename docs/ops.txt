@@ -84,8 +84,24 @@ USER-DEFINED FUNCTION OPERATIONS:
   OP_RET             Return from user-defined function:
                      Pop return value from function's frame
                      Restore previous frame, push return value
-  OP_ARG name        Pop argument from stack, store as parameter:
-                     Used at function entry to bind arguments to params
+   OP_ARG name        Pop argument from stack, store as parameter:
+                      Used at function entry to bind arguments to params
+
+TERMINAL BUILT-IN FUNCTIONS:
+  These are called via OP_CALL_USER with function names resolved
+  at runtime against the builtin table (no parse-time registration needed):
+
+  sleep(ms)           Pause execution for ms milliseconds
+  clear_screen()      Send ANSI escape \033[2J\033[H to clear terminal
+  move_cursor(x,y)    Send ANSI escape \033[y;xH to position cursor
+  get_key()           Non-blocking single-char read (raw terminal mode)
+  cursor_hide()       Hide cursor (\033[?25l)
+  cursor_show()       Show cursor (\033[?25h)
+  set_color(fg)       Set text color (0-7)
+  set_color(fg,bg)    Set text and background colors
+  reset_color()       Reset to default (\033[0m)
+  term_width()        Return terminal width from $COLUMNS
+  term_height()       Return terminal height from $LINES
 
 HALT:
   OP_HALT            Stop program execution

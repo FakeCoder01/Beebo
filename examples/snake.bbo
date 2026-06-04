@@ -1,0 +1,192 @@
+// Snake Game in Beebo
+// Use WASD to move, Q to quit
+
+width = 30;
+height = 15;
+
+// Snake body — two parallel arrays: sx[length] and sy[length]
+max_len = width * height;
+sx[max_len];
+sy[max_len];
+
+// Initialize snake at center, length 3
+sx[0] = width / 2;
+sy[0] = height / 2;
+sx[1] = sx[0] - 1;
+sy[1] = sy[0];
+sx[2] = sx[0] - 2;
+sy[2] = sy[0];
+snake_len = 3;
+
+// Direction: 0=right, 1=down, 2=left, 3=up
+dir = 0;
+
+// Food position
+food_x = 5;
+food_y = 5;
+
+// Score
+score = 0;
+
+// Game loop
+game_on = 1;
+move_speed = 120;
+
+clear_screen();
+cursor_hide();
+
+while (game_on == 1) {
+    // Read keyboard
+    key = get_key();
+    
+    if (key == "w" || key == "W") {
+        if (dir != 1) { dir = 3 }
+    };
+    if (key == "s" || key == "S") {
+        if (dir != 3) { dir = 1 }
+    };
+    if (key == "a" || key == "A") {
+        if (dir != 0) { dir = 2 }
+    };
+    if (key == "d" || key == "D") {
+        if (dir != 2) { dir = 0 }
+    };
+    if (key == "q" || key == "Q") {
+        game_on = 0
+    };
+
+    // Move snake: compute new head
+    if (dir == 0) {
+        new_x = sx[0] + 1;
+        new_y = sy[0]
+    };
+    if (dir == 1) {
+        new_x = sx[0];
+        new_y = sy[0] + 1
+    };
+    if (dir == 2) {
+        new_x = sx[0] - 1;
+        new_y = sy[0]
+    };
+    if (dir == 3) {
+        new_x = sx[0];
+        new_y = sy[0] - 1
+    };
+
+    // Check wall collision
+    if (new_x < 0 || new_x >= width || new_y < 0 || new_y >= height) {
+        game_on = 0
+    };
+
+    // Check self collision
+    i = 0;
+    while (i < snake_len && game_on == 1) {
+        if (sx[i] == new_x && sy[i] == new_y) {
+            game_on = 0
+        };
+        i = i + 1
+    };
+
+    if (game_on == 1) {
+        // Check food
+        ate = 0;
+        if (new_x == food_x && new_y == food_y) {
+            snake_len = snake_len + 1;
+            score = score + 1;
+            ate = 1;
+            
+            // New food at random-like position
+            food_x = (food_x * 7 + 3);
+            while (food_x >= width) {
+                food_x = food_x - width
+            };
+            food_y = (food_y * 5 + 2);
+            while (food_y >= height) {
+                food_y = food_y - height
+            };
+            move_speed = move_speed - 2;
+            if (move_speed < 50) {
+                move_speed = 50
+            }
+        };
+
+        // Shift body
+        i = snake_len;
+        while (i > 0) {
+            sx[i] = sx[i - 1];
+            sy[i] = sy[i - 1];
+            i = i - 1
+        };
+
+        // Place new head
+        sx[0] = new_x;
+        sy[0] = new_y;
+
+        // Draw
+        move_cursor(1, 1);
+        output "Score: " + score + "  Speed:" + move_speed + "ms   \n";
+
+        // Draw top border
+        output "+";
+        i = 0;
+        while (i < width) {
+            output "-";
+            i = i + 1
+        };
+        output "+\n";
+
+        // Draw grid
+        y = 0;
+        while (y < height) {
+            output "|";
+            x = 0;
+            while (x < width) {
+                // Check if snake
+                is_snake = 0;
+                s = 0;
+                while (s < snake_len) {
+                    if (sx[s] == x && sy[s] == y) {
+                        is_snake = 1
+                    };
+                    s = s + 1
+                };
+
+                if (x == food_x && y == food_y) {
+                    output "*"
+                } else {
+                    if (is_snake == 1) {
+                        if (x == sx[0] && y == sy[0]) {
+                            output "@"
+                        } else {
+                            output "#"
+                        }
+                    } else {
+                        output " "
+                    }
+                };
+                x = x + 1
+            };
+            output "|\n";
+            y = y + 1
+        };
+
+        // Draw bottom border
+        output "+";
+        i = 0;
+        while (i < width) {
+            output "-";
+            i = i + 1
+        };
+        output "+";
+
+        sleep(move_speed)
+    }
+};
+
+// Game over
+cursor_show();
+move_cursor(1, height + 3);
+output "\n=== GAME OVER ===\n";
+output "Score: " + score + "\n";
+reset_color();
+output "\n"

@@ -227,6 +227,83 @@ let () =
     "abs", abs_float;
   ]
 
+let term_raw_state = ref None
+
+let term_enable_raw () =
+  match !term_raw_state with
+  | Some _ -> ()
+  | None ->
+    try
+      let tc = Unix.tcgetattr Unix.stdin in
+      term_raw_state := Some tc;
+      let raw = { tc with
+        Unix.c_icanon = false;
+        Unix.c_echo = false;
+        Unix.c_vmin = 0;
+        Unix.c_vtime = 0;
+      } in
+      Unix.tcsetattr Unix.stdin Unix.TCSANOW raw
+    with _ -> ()
+
+let term_disable_raw () =
+  match !term_raw_state with
+  | None -> ()
+  | Some tc ->
+    (try Unix.tcsetattr Unix.stdin Unix.TCSANOW tc with _ -> ());
+    term_raw_state := None
+
+let terminal_builtin name args =
+  match name, args with
+  | "sleep", [V_INT ms] ->
+    Unix.sleepf (float_of_int ms /. 1000.0);
+    V_INT 0
+  | "sleep", [V_REAL ms] ->
+    Unix.sleepf (ms /. 1000.0);
+    V_INT 0
+  | "clear_screen", [] ->
+    Printf.printf "\027[2J\027[H%!";
+    V_INT 0
+  | "move_cursor", [V_INT x; V_INT y] ->
+    Printf.printf "\027[%d;%dH%!" y x;
+    V_INT 0
+  | "move_cursor", [V_INT x; V_REAL y] ->
+    Printf.printf "\027[%d;%dH%!" (int_of_float y) x;
+    V_INT 0
+  | "cursor_hide", [] ->
+    Printf.printf "\027[?25l%!";
+    V_INT 0
+  | "cursor_show", [] ->
+    Printf.printf "\027[?25h%!";
+    V_INT 0
+  | "get_key", [] ->
+    term_enable_raw ();
+    let ch =
+      try
+        let c = input_char stdin in
+        V_STR (String.make 1 c)
+      with _ -> V_INT 0
+    in
+    term_disable_raw ();
+    ch
+  | "get_key", _ ->
+    V_INT 0
+  | "set_color", [V_INT fg; V_INT bg] ->
+    Printf.printf "\027[%d;%dm%!" (fg + 30) (bg + 40);
+    V_INT 0
+  | "set_color", [V_INT fg] ->
+    Printf.printf "\027[%dm%!" (fg + 30);
+    V_INT 0
+  | "reset_color", [] ->
+    Printf.printf "\027[0m%!";
+    V_INT 0
+  | "term_width", [] ->
+    (try V_INT (int_of_string (Sys.getenv "COLUMNS"))
+     with _ -> V_INT 80)
+  | "term_height", [] ->
+    (try V_INT (int_of_string (Sys.getenv "LINES"))
+     with _ -> V_INT 24)
+  | _ -> V_NONE
+
 let build_label_map ops =
   let labels = Hashtbl.create 50 in
   List.iteri (fun i op ->
@@ -549,9 +626,15 @@ let interpret ops input_lines =
               pc := entry_pc;
               true
             | None ->
-              errors := ("CALL_USER: undefined function '" ^ name ^ "'") :: !errors;
-              push V_NONE;
-              true
+              let builtin_result = terminal_builtin name (List.rev acc) in
+              if builtin_result <> V_NONE then begin
+                push builtin_result;
+                true
+              end else begin
+                errors := ("CALL_USER: undefined function '" ^ name ^ "'") :: !errors;
+                push V_NONE;
+                true
+              end
             end
           | _ -> collect_args (v :: acc)
         in

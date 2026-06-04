@@ -14,6 +14,6 @@ RUN cd src && ocamlc -c types.ml && \
     ocamlc -c interpreter.ml && \
     ocamlc -c parser.ml && \
     ocamlc -c main.ml && \
-    ocamlc -o beebo types.cmo lexer.cmo grammar.cmo parser.cmo interpreter.cmo main.cmo
+    ocamlc -o beebo unix.cma types.cmo lexer.cmo grammar.cmo parser.cmo interpreter.cmo main.cmo
 
 ENTRYPOINT ["./src/beebo"]

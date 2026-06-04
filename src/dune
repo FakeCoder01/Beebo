@@ -1,3 +1,4 @@
 (executable
  (name main)
- (modules types lexer grammar parser interpreter main))
+ (modules types lexer grammar parser interpreter main)
+ (libraries unix))
