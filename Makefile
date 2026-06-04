@@ -22,6 +22,6 @@ test-math: build
 	./src/beebo examples/math_lib.bbo
 
 test-error: build
-	./src/beebo examples/error1.bbo
+	./src/beebo examples/error.bbo
 
 test-all: test-formula test-sort test-strings test-math test-error

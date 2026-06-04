@@ -175,6 +175,7 @@ let make_actions st prod_id : parser_task list =
     let start_lbl = fresh_label st in
     let cond_lbl = fresh_label st in
     let incr_lbl = fresh_label st in
+    let body_lbl = fresh_label st in
     let end_lbl = fresh_label st in
     [TASK_ACTION (fun () -> emit st (OP_LABEL start_lbl));
      TASK_MATCH T_KW_FOR;
@@ -186,15 +187,17 @@ let make_actions st prod_id : parser_task list =
      TASK_MATCH T_SEMICOLON;
      TASK_ACTION (fun () ->
        emit st (OP_JMPF end_lbl);
-       emit st (OP_JMP incr_lbl));
+       emit st (OP_JMP body_lbl));
      TASK_ACTION (fun () -> emit st (OP_LABEL incr_lbl));
      TASK_PARSE NT_ASSIGN_STMT;
      TASK_MATCH T_RPAREN;
      TASK_ACTION (fun () ->
        emit st (OP_JMP cond_lbl);
-       emit st (OP_LABEL end_lbl));
+       emit st (OP_LABEL body_lbl));
      TASK_PARSE NT_STMT;
-     TASK_ACTION (fun () -> emit st (OP_JMP incr_lbl))]
+     TASK_ACTION (fun () ->
+       emit st (OP_JMP incr_lbl);
+       emit st (OP_LABEL end_lbl))]
 
   | 23 ->
     [TASK_MATCH T_KW_INPUT;
@@ -451,7 +454,11 @@ let make_actions st prod_id : parser_task list =
        emit st (OP_JMP end_lbl); emit st (OP_LABEL entry_lbl);
        emit st (OP_FUNC_ENTRY (n, entry_lbl, List.length ps));
        List.iter (fun p -> emit st (OP_ARG p)) ps);
-     TASK_PARSE NT_BLOCK; TASK_ACTION (fun () -> emit st (OP_LABEL end_lbl))]
+     TASK_PARSE NT_BLOCK;
+     TASK_ACTION (fun () ->
+       emit st (OP_PUSH_INT 0);
+       emit st OP_RET;
+       emit st (OP_LABEL end_lbl))]
 
   | 75 ->
     [TASK_MATCH T_IDENT; TASK_ACTION (fun () -> st.func_params <- st.saved_ident :: st.func_params);
