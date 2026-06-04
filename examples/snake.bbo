@@ -1,0 +1,229 @@
+width = 60;
+height = 30;
+max_len = 50;
+
+snake_x[max_len];
+snake_y[max_len];
+
+head_idx = 0;
+tail_idx = 0;
+
+// start in the middle
+snake_x[head_idx] = 30;
+snake_y[head_idx] = 15;
+
+dir_x = 1;
+dir_y = 0;
+
+score = 0;
+game_over = 0;
+seed = 99;
+
+// spawn initial food inline to avoid any variable scoping bugs
+food_x = 0;
+food_y = 0;
+valid = 0;
+
+while (valid == 0) {
+
+  // LCG for Random Numbers
+  seed = seed * 214013 + 2531011;
+  seed = seed - integer(seed / 16777216) * 16777216;
+  food_x = 2 + (seed - integer(seed / (width - 2)) * (width - 2));
+
+  seed = seed * 214013 + 2531011;
+  seed = seed - integer(seed / 16777216) * 16777216;
+  food_y = 2 + (seed - integer(seed / (height - 2)) * (height - 2));
+
+  valid = 1;
+  if (snake_x[head_idx] == food_x && snake_y[head_idx] == food_y) {
+    valid = 0
+  }
+};
+
+clear_screen();
+cursor_hide();
+
+move_cursor(1, 1);
+y = 1;
+while (y <= height) {
+  x = 1;
+  while (x <= width) {
+    if (y == 1 || y == height || x == 1 || x == width) {
+      set_color(4);
+      output "##"
+    } else {
+      output "  "
+    };
+    x = x + 1
+  };
+  output "\n";
+  y = y + 1
+};
+
+// main game loop
+while (game_over == 0) {
+
+  // redraw only the inside of the board
+  y = 2;
+  while (y <= height - 1) {
+    move_cursor(y, 3); // fixed: row 'y', column 3 (skips the left border)
+    x = 2;
+
+    while (x <= width - 1) {
+      if (x == food_x && y == food_y) {
+        set_color(1);
+        output "$$" // red food
+      } else {
+        is_snake = 0;
+        c = tail_idx;
+
+        while (c != head_idx && is_snake == 0) {
+          if (snake_x[c] == x && snake_y[c] == y) {
+            is_snake = 1
+          };
+
+          c = c + 1;
+          if (c >= max_len) {
+            c = 0
+          }
+        };
+
+        if (snake_x[head_idx] == x && snake_y[head_idx] == y) {
+          is_snake = 2
+        };
+
+        if (is_snake == 2) {
+          set_color(3);
+          output "@" // yellow head
+        } else {
+          if (is_snake == 1) {
+            set_color(2);
+            output "*" // green body
+          } else {
+            output "  " // empty space
+          }
+        }
+      };
+      x = x + 1
+    };
+    y = y + 1
+  };
+
+  // move below the grid to print the score without triggering scroll
+  move_cursor(height + 1, 1);
+  reset_color();
+  output "Score: " + score + " | WASD/Arrows to move, Q to quit.   ";
+
+  k = get_key();
+
+  // checks for standard letters OR ANSI arrow keys
+  if (k == "w" || k == "W" || k == "^[[A") {
+    if (dir_y != 1) {
+      dir_x = 0;
+      dir_y = -1
+    }
+  };
+  if (k == "s" || k == "S" || k == "^[[B") {
+    if (dir_y != -1) {
+      dir_x = 0;
+      dir_y = 1
+    }
+  };
+  if (k == "a" || k == "A" || k == "^[[D") {
+    if (dir_x != 1) {
+      dir_x = -1;
+      dir_y = 0
+    }
+  };
+  if (k == "d" || k == "D" || k == "^[[C") {
+    if (dir_x != -1) {
+      dir_x = 1;
+      dir_y = 0
+    }
+  };
+  if (k == "q" || k == "Q") {
+    game_over = 1
+  };
+
+  // update future position
+  new_x = snake_x[head_idx] + dir_x;
+  new_y = snake_y[head_idx] + dir_y;
+
+  // collision checks
+  if (new_x <= 1 || new_x >= width || new_y <= 1 || new_y >= height) {
+    game_over = 1
+  };
+
+  c = tail_idx;
+  while (c != head_idx && game_over == 0) {
+    if (snake_x[c] == new_x && snake_y[c] == new_y) {
+      game_over = 1
+    };
+    c = c + 1;
+    if (c >= max_len) {
+      c = 0
+    }
+  };
+
+  // eat food or move
+  if (game_over == 0) {
+    ate_food = 0;
+    if (new_x == food_x && new_y == food_y) {
+      ate_food = 1;
+      score = score + 10;
+
+      // inline random food spawn
+      valid = 0;
+      while (valid == 0) {
+        seed = seed * 214013 + 2531011;
+        seed = seed - integer(seed / 16777216) * 16777216;
+        food_x = 2 + (seed - integer(seed / (width - 2)) * (width - 2));
+
+        seed = seed * 214013 + 2531011;
+        seed = seed - integer(seed / 16777216) * 16777216;
+        food_y = 2 + (seed - integer(seed / (height - 2)) * (height - 2));
+
+        valid = 1;
+        c = tail_idx;
+        while (c != head_idx && valid == 1) {
+          if (snake_x[c] == food_x && snake_y[c] == food_y) {
+            valid = 0
+          };
+          c = c + 1;
+          if (c >= max_len) {
+            c = 0
+          }
+        };
+        if (snake_x[head_idx] == food_x && snake_y[head_idx] == food_y) {
+          valid = 0
+        }
+      }
+    };
+
+    // advance tail if no food eaten
+    if (ate_food == 0) {
+      tail_idx = tail_idx + 1;
+      if (tail_idx >= max_len) {
+        tail_idx = 0
+      }
+    };
+
+    // advance head
+    head_idx = head_idx + 1;
+    if (head_idx >= max_len) {
+      head_idx = 0
+    };
+
+    snake_x[head_idx] = new_x;
+    snake_y[head_idx] = new_y
+  };
+
+  sleep(150)
+};
+
+// game_over
+clear_screen();
+reset_color();
+cursor_show();
+output "GAME OVER! Final Score: " + score + "\n"

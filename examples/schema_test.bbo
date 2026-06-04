@@ -1,0 +1,49 @@
+output "Enter number of students : ";
+input n;
+
+arr[n];
+
+schema Student {
+    name;
+    age;
+    marks
+};
+
+output "\nEnter student information:\n";
+
+i = 0;
+while(i < n) {
+
+    output "\nStudent " + (i + 1) + ":\n";
+
+    output "Enter name : ";
+    input name;
+
+    output "Enter age : ";
+    input age;
+
+    output "Enter marks : ";
+    input marks;
+
+    s = Student{age: age, name: name, marks: marks};
+
+    arr[i] = s;
+
+    i = i + 1
+};
+
+output "\nDatabase:\n";
+output "---------\n";
+
+i = 0;
+
+while(i < n) {
+    s = arr[i];
+    output "\nStudent " + (i + 1) + ":\n";
+    output "Name : " + s.name + "\n";
+    output "Age : " + s.age + "\n";
+    output "Marks : " + s.marks + "\n";
+    output "---------\n";
+    i = i + 1
+}
+// schematest

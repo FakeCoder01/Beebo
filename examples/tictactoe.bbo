@@ -1,0 +1,176 @@
+// init game state
+board[9];
+i = 0;
+while (i < 9) {
+    board[i] = 0; // 0 = empty, 1 = player X, 2 = player O
+    i = i + 1
+};
+
+player = 1; // start with player 1 (X)
+cx = 1;     // cursor X (0, 1, or 2)
+cy = 1;     // cursor Y (0, 1, or 2)
+
+game_over = 0;
+winner = 0;
+moves = 0;
+
+clear_screen();
+cursor_hide();
+
+// draw static UI (drawn once to prevent flicker)
+move_cursor(1, 1);
+set_color(4); // blue title
+output "==================================\n";
+output "           TIC-TAC-TOE            \n";
+output "==================================\n";
+reset_color();
+
+move_cursor(14, 1);
+output "Controls: WASD/Arrows to move, SPACE to place, Q to quit.";
+
+// main game loop
+while (game_over == 0) {
+
+    // draw current turn header
+    move_cursor(4, 3);
+    if (player == 1) {
+        set_color(3); // yellow
+        output "Player 1 (X)'s turn...      "
+    } else {
+        set_color(2); // green
+        output "Player 2 (O)'s turn...      "
+    };
+    reset_color();
+
+    // render the 3x3 Grid
+    y = 0;
+    while (y < 3) {
+        x = 0;
+        while (x < 3) {
+            // calculate screen coordinates (Row, Col)
+            move_cursor(7 + y * 2, 6 + x * 9);
+
+            idx = y * 3 + x;
+            val = board[idx];
+
+            // check if our interactive cursor is on this cell
+            is_cursor = 0;
+            if (cx == x && cy == y) {
+                is_cursor = 1
+            };
+
+            // apply colors and text based on cell state
+            if (is_cursor == 1) {
+                // highlighted background (white bg)
+                if (val == 1) {
+                    set_color(3, 7);
+                    mark = "X"
+                } else {
+                    if (val == 2) {
+                        set_color(2, 7);
+                        mark = "O"
+                    } else {
+                        set_color(0, 7);
+                        mark = " "
+                    }
+                }
+            } else {
+                // normal bg
+                if (val == 1) {
+                    set_color(3);
+                    mark = "X"
+                } else {
+                    if (val == 2) {
+                        set_color(2);
+                        mark = "O"
+                    } else {
+                        reset_color();
+                        mark = "-"
+                    }
+                }
+            };
+
+            output " [ " + mark + " ] ";
+            reset_color();
+
+            x = x + 1
+        };
+        y = y + 1
+    };
+
+    // handle input
+    k = get_key();
+
+    // Move Cursor
+    if (k == "w" || k == "W" || k == "^[[A") { if (cy > 0) { cy = cy - 1 } };
+    if (k == "s" || k == "S" || k == "^[[B") { if (cy < 2) { cy = cy + 1 } };
+    if (k == "a" || k == "A" || k == "^[[D") { if (cx > 0) { cx = cx - 1 } };
+    if (k == "d" || k == "D" || k == "^[[C") { if (cx < 2) { cx = cx + 1 } };
+    if (k == "q" || k == "Q") { game_over = 1 };
+
+    // place mark
+    if (k == " ") {
+        idx = cy * 3 + cx;
+
+        // only allow placement if the cell is empty (0)
+        if (board[idx] == 0) {
+            board[idx] = player;
+            moves = moves + 1;
+
+            // check win condition
+
+            // rows
+            if (board[0] != 0 && board[0] == board[1] && board[1] == board[2]) { winner = board[0] };
+            if (board[3] != 0 && board[3] == board[4] && board[4] == board[5]) { winner = board[3] };
+            if (board[6] != 0 && board[6] == board[7] && board[7] == board[8]) { winner = board[6] };
+
+            // columns
+            if (board[0] != 0 && board[0] == board[3] && board[3] == board[6]) { winner = board[0] };
+            if (board[1] != 0 && board[1] == board[4] && board[4] == board[7]) { winner = board[1] };
+            if (board[2] != 0 && board[2] == board[5] && board[5] == board[8]) { winner = board[2] };
+
+            // diagonals
+            if (board[0] != 0 && board[0] == board[4] && board[4] == board[8]) { winner = board[0] };
+            if (board[2] != 0 && board[2] == board[4] && board[4] == board[6]) { winner = board[2] };
+
+            // determine state
+            if (winner != 0) {
+                game_over = 1
+            } else {
+                if (moves == 9) {
+                    game_over = 1 // tie
+                } else {
+                    // switch player
+                    if (player == 1) {
+                        player = 2
+                    } else {
+                        player = 1
+                    }
+                }
+            }
+        }
+    };
+
+    // pause briefly to keep the CPU usage low
+    sleep(60)
+};
+
+// game over screen
+move_cursor(16, 1);
+if (winner == 1) {
+    set_color(3); // yellow
+    output "=== PLAYER 1 (X) WINS! ===\n"
+};
+if (winner == 2) {
+    set_color(2); // green
+    output "=== PLAYER 2 (O) WINS! ===\n"
+};
+if (winner == 0) {
+    reset_color();
+    output "=== IT'S A TIE! ===\n"
+};
+
+// clean up terminal
+cursor_show();
+reset_color();
+output "\nThanks for playing!\n"

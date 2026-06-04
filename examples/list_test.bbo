@@ -1,12 +1,12 @@
-output "Enter number of elements (3xN)";
+output "Enter number of columns (3xN) : ";
 input n;
 
 arr2[3];
 
-output "\nEnter array elements:\n";
 
 k = 0;
 while(k < 3) {
+    output "\nEnter row " + string(k + 1) + "\n";
     i = 0;
     arr[n];
     while (i < n) {
@@ -15,6 +15,7 @@ while(k < 3) {
     	i = i + 1
     };
     arr2[k] = arr;
+    output "\n";
     k = k + 1
 };
 
@@ -30,4 +31,5 @@ while(k < 3) {
     };
     output "\n";
     k = k + 1
-};
+}
+// arraylist

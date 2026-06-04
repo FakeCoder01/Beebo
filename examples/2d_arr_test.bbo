@@ -1,12 +1,12 @@
 arr[3][3];
 
-output "\nEnter array elements (3x3) \n";
+output "\nEnter array elements (3x3)\n";
 
 i = 0;
 while(i < 3) {
     j = 0;
     while (j < 3) {
-    	output "Enter element : ";
+    	output "Enter element [" + (i + 1) + "," + (j + 1) + "] : ";
     	input arr[i][j];
     	j = j + 1
     };
