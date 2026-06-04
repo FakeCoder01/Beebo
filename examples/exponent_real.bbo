@@ -1,0 +1,4 @@
+x = 1e3;
+y = 2.5e-1;
+output x + y;
+output "\n"

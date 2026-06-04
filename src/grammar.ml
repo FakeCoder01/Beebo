@@ -99,12 +99,6 @@ let string_of_gs = function
   | NT_RETURN_STMT -> "ReturnStmt"
   | NT_ARG_LIST -> "ArgList"
   | NT_ARG_LIST_TAIL -> "ArgListTail"
-      | NT_FUNC_DEF -> "FuncDef"
-      | NT_PARAM_LIST -> "ParamList"
-      | NT_PARAM_LIST_TAIL -> "ParamListTail"
-      | NT_RETURN_STMT -> "ReturnStmt"
-      | NT_ARG_LIST -> "ArgList"
-      | NT_ARG_LIST_TAIL -> "ArgListTail"
       | NT_SCHEMA_DEF -> "SchemaDef"
   | NT_FIELD_LIST -> "FieldList"
   | NT_FIELD_REST -> "FieldRest"
@@ -160,7 +154,6 @@ let string_of_nt = function
   | NT_FIELD_REST -> "FieldRest"
   | NT_FIELD_INIT_LIST -> "FieldInitList"
   | NT_FIELD_INIT_TAIL -> "FieldInitTail"
-  | NT_OUTPUT_ARG -> "OutputArg"
 
 let productions : production_entry array = [|
   { prod_id = 0;  lhs = NT_PROGRAM;          rhs = [GS_NT NT_STMT_LIST; GS_EOF];        rhs_len = 2; };
@@ -271,6 +264,11 @@ let productions : production_entry array = [|
 let production_count = Array.length productions
 
 let terminal_first nt =
+  let expr_first =
+    [T_LPAREN; T_INT; T_REAL; T_IDENT; T_MINUS; T_STRING;
+     T_KW_SQRT; T_KW_EXP; T_KW_LOG; T_KW_SIN; T_KW_COS; T_KW_ABS;
+     T_KW_STRING; T_KW_REALFN; T_KW_INTEGER]
+  in
   match nt with
   | NT_PROGRAM | NT_STMT_LIST | NT_STMT ->
       [T_IDENT; T_KW_IF; T_KW_WHILE; T_KW_FOR; T_KW_INPUT; T_KW_OUTPUT; T_LBRACE; T_KW_FUNC; T_KW_RETURN; T_KW_SCHEMA]
@@ -281,7 +279,7 @@ let terminal_first nt =
   | NT_ASSIGN_STMT ->
       [T_IDENT]
   | NT_ASSIGN_REST ->
-      [T_EQ; T_LBRACKET]
+      [T_EQ; T_LBRACKET; T_LPAREN; T_DOT]
   | NT_ASSIGN_ARR ->
       [T_EQ; T_LBRACKET]
   | NT_ASSIGN_ARR2 ->
@@ -298,6 +296,8 @@ let terminal_first nt =
       [T_KW_INPUT]
   | NT_OUTPUT_STMT ->
       [T_KW_OUTPUT]
+  | NT_OUTPUT_ARG ->
+      expr_first
   | NT_LVALUE ->
       [T_IDENT]
   | NT_LVALUE_REST ->
@@ -312,20 +312,41 @@ let terminal_first nt =
   | NT_COND_TERM_REST ->
       [T_AND]
   | NT_EXPR | NT_TERM | NT_FACTOR ->
-      [T_LPAREN; T_INT; T_REAL; T_IDENT; T_MINUS; T_STRING;
-       T_KW_SQRT; T_KW_EXP; T_KW_LOG; T_KW_SIN; T_KW_COS; T_KW_ABS; T_KW_STRING; T_KW_REALFN; T_KW_INTEGER]
+      expr_first
   | NT_EXPR_TAIL ->
       [T_PLUS; T_MINUS]
   | NT_TERM_TAIL ->
       [T_STAR; T_SLASH]
   | NT_FACTOR_REST ->
-      [T_LBRACKET]
+      [T_LBRACKET; T_LPAREN; T_DOT; T_LBRACE]
   | NT_FACTOR_ARR ->
       [T_LBRACKET]
   | NT_RELOP ->
       [T_LT; T_GT; T_LE; T_GE; T_EQEQ; T_NE]
   | NT_FUNC_NAME ->
       [T_KW_SQRT; T_KW_EXP; T_KW_LOG; T_KW_SIN; T_KW_COS; T_KW_ABS; T_KW_STRING; T_KW_REALFN; T_KW_INTEGER]
+  | NT_FUNC_DEF ->
+      [T_KW_FUNC]
+  | NT_PARAM_LIST ->
+      [T_IDENT]
+  | NT_PARAM_LIST_TAIL ->
+      [T_COMMA]
+  | NT_RETURN_STMT ->
+      [T_KW_RETURN]
+  | NT_ARG_LIST ->
+      expr_first
+  | NT_ARG_LIST_TAIL ->
+      [T_COMMA]
+  | NT_SCHEMA_DEF ->
+      [T_KW_SCHEMA]
+  | NT_FIELD_LIST ->
+      [T_IDENT]
+  | NT_FIELD_REST ->
+      [T_SEMICOLON]
+  | NT_FIELD_INIT_LIST ->
+      [T_IDENT]
+  | NT_FIELD_INIT_TAIL ->
+      [T_COMMA]
 
 let follow_set nt =
   match nt with
@@ -344,6 +365,7 @@ let follow_set nt =
   | NT_FOR_STMT -> [T_SEMICOLON; T_EOF; T_RBRACE]
   | NT_INPUT_STMT -> [T_SEMICOLON; T_EOF; T_RBRACE]
   | NT_OUTPUT_STMT -> [T_SEMICOLON; T_EOF; T_RBRACE]
+  | NT_OUTPUT_ARG -> [T_SEMICOLON; T_EOF; T_RBRACE]
   | NT_LVALUE -> [T_SEMICOLON; T_EOF; T_RBRACE; T_RPAREN]
   | NT_LVALUE_REST -> [T_SEMICOLON; T_EOF; T_RBRACE; T_RPAREN]
   | NT_LVALUE_ARR -> [T_SEMICOLON; T_EOF; T_RBRACE; T_RPAREN]
@@ -388,19 +410,6 @@ let follow_set nt =
   | NT_FIELD_REST -> [T_RBRACE]
   | NT_FIELD_INIT_LIST -> [T_RBRACE]
   | NT_FIELD_INIT_TAIL -> [T_RBRACE]
-  | NT_FUNC_DEF -> [T_KW_FUNC]
-  | NT_PARAM_LIST -> [T_IDENT]
-  | NT_PARAM_LIST_TAIL -> [T_COMMA]
-  | NT_RETURN_STMT -> [T_KW_RETURN]
-  | NT_ARG_LIST ->
-      [T_LPAREN; T_INT; T_REAL; T_IDENT; T_MINUS; T_STRING;
-       T_KW_SQRT; T_KW_EXP; T_KW_LOG; T_KW_SIN; T_KW_COS; T_KW_ABS; T_KW_STRING; T_KW_REALFN; T_KW_INTEGER]
-  | NT_ARG_LIST_TAIL -> [T_COMMA]
-  | NT_SCHEMA_DEF -> [T_KW_SCHEMA]
-  | NT_FIELD_LIST -> [T_IDENT]
-  | NT_FIELD_REST -> [T_SEMICOLON]
-  | NT_FIELD_INIT_LIST -> [T_IDENT]
-  | NT_FIELD_INIT_TAIL -> [T_COMMA]
 
 module ParseKey = struct
   type t = nonterminal * token_type

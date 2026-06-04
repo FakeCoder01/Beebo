@@ -8,8 +8,8 @@ LEXEME CLASSIFICATION TABLE
  Number  Token Type     Description              Examples
  ------  -----------    -----------              --------
    1      T_IDENT       Identifier               x, arr, myVar, _temp
-   2      T_INT         Integer literal          0, 42, -7, 1000
-   3      T_REAL        Real number literal      3.14, 0.5, 1e10, -2.5
+   2      T_INT         Integer literal          0, 42, 1000
+   3      T_REAL        Real number literal      3.14, 0.5, 1e10, 1e-3
    4      T_STRING      String literal           "hello", ""
    5      T_KW_IF       Keyword 'if'             if
    6      T_KW_ELSE     Keyword 'else'           else
@@ -118,12 +118,14 @@ From S1 (IDENTIFIER):
 From S2 (NUMBER):
   D   → S2    (continue integer)
    .   → S3    (start fractional part — handled in code for reals)
-  L   → S_ERR (letters after number = error)
+  e/E → S3    (scientific exponent if followed by optional sign and digits)
+  L   → S_ERR (other letters after number = error)
   o   → S0    (end number)
   EOF → S0
 
 From S3 (REAL_FRAC):
   D   → S3    (continue fraction)
+  e/E → S3    (scientific exponent if followed by optional sign and digits)
   o   → S0    (end real number)
   EOF → S0
 
@@ -188,3 +190,7 @@ cos       T_KW_COS
 abs       T_KW_ABS
 
 Any other identifier is T_IDENT.
+
+NOTE:
+The minus sign is tokenized as T_MINUS and is handled by the parser as
+unary negation. For example, -2.5 is stored as T_MINUS followed by T_REAL.

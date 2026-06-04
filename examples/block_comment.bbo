@@ -1,0 +1,5 @@
+/* This comment spans
+   more than one physical line.
+   The lexer must skip it completely. */
+
+output "block-comment-ok\n"

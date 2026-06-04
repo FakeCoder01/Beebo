@@ -506,8 +506,9 @@ let make_actions st prod_id : parser_task list =
      TASK_PARSE NT_FACTOR_REST]
 
   | 93 ->
+    let schema_name = st.saved_ident in
     [TASK_MATCH T_LBRACE; TASK_PARSE NT_FIELD_INIT_LIST; TASK_MATCH T_RBRACE;
-     TASK_ACTION (fun () -> emit st (OP_MAKE_SCHEMA ""))]
+     TASK_ACTION (fun () -> emit st (OP_MAKE_SCHEMA schema_name))]
 
   | 94 ->
     [TASK_MATCH T_IDENT; TASK_ACTION (fun () -> emit st (OP_PUSH_STR st.saved_ident));
