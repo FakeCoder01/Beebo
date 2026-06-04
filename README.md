@@ -244,6 +244,25 @@ z = real("3.14")   // 3.14
 w = integer(3.9)   // 3
 ```
 
+**Terminal control:**
+
+- `sleep(ms)` — pause for `ms` milliseconds
+- `clear_screen()` — clear terminal (ANSI `\033[2J\033[H`)
+- `move_cursor(x, y)` — move cursor to column `x`, row `y` (1-based)
+- `get_key()` — non-blocking read of a single keystroke; returns empty string if no key pressed
+- `cursor_hide()` / `cursor_show()` — hide/show terminal cursor
+- `set_color(fg)` / `set_color(fg, bg)` — set text/both colors (0–7)
+- `reset_color()` — reset to default color
+- `term_width()` / `term_height()` — terminal dimensions (from `$COLUMNS`/`$LINES`)
+
+```
+clear_screen();
+move_cursor(10, 5);
+set_color(2);
+output "Green text at (10,5)\n";
+reset_color()
+```
+
 ### Comments
 
 ```
@@ -288,6 +307,7 @@ Stack machine executing OPS instructions:
 - **Functions**: FUNC_ENTRY, CALL_USER, RET, ARG
 - **I/O**: INPUT_STR, OUTPUT
 - **Math**: CALL (sqrt, exp, log, sin, cos, abs)
+- **Terminal**: CALL_USER fallback (sleep, get_key, clear_screen, move_cursor, etc.)
 
 ### Data Types
 
