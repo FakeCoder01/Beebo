@@ -10,6 +10,17 @@ let type_name = function
   | V_MAT _ -> "matrix"
   | _ -> "unknown"
 
+let strip_utf8_bom s =
+  if String.length s >= 3
+     && Char.code s.[0] = 0xEF
+     && Char.code s.[1] = 0xBB
+     && Char.code s.[2] = 0xBF
+  then String.sub s 3 (String.length s - 3)
+  else s
+
+let clean_input s =
+  String.trim (strip_utf8_bom s)
+
 let rec value_to_string = function
   | V_INT n -> string_of_int n
   | V_REAL r ->
@@ -588,13 +599,14 @@ let interpret ops input_lines =
 
       | OP_INPUT_INT ->
         let line = read_input () in
+        let trimmed = clean_input line in
         begin try
-          let n = int_of_string (String.trim line) in
+          let n = int_of_string trimmed in
           push (V_INT n);
           true
         with _ ->
           try
-            let f = float_of_string (String.trim line) in
+            let f = float_of_string trimmed in
             push (V_REAL f);
             true
           with _ ->
@@ -604,8 +616,9 @@ let interpret ops input_lines =
 
       | OP_INPUT_REAL ->
         let line = read_input () in
+        let trimmed = clean_input line in
         begin try
-          let f = float_of_string (String.trim line) in
+          let f = float_of_string trimmed in
           push (V_REAL f);
           true
         with _ ->
@@ -685,10 +698,13 @@ let interpret ops input_lines =
         let rec collect acc =
           let top = pop () in
           match top with
-          | V_ADDR_SIMPLE _ ->
+          | V_ADDR_SIMPLE marker_name ->
+            let schema_name =
+              if type_name = "" then marker_name else type_name
+            in
             let ht = Hashtbl.create (List.length acc) in
             List.iter (fun (k, v) -> Hashtbl.replace ht k v) acc;
-            push (V_SCHEMA (type_name, ht))
+            push (V_SCHEMA (schema_name, ht))
           | _ ->
             let name_val = pop () in
             let name = match name_val with V_STR s -> s | v -> value_to_string v in
@@ -700,9 +716,9 @@ let interpret ops input_lines =
       | OP_FUNC_ENTRY _ ->
         true
 
-      | OP_INPUT_STR ->
+      | OP_INPUT_STR -> 
         let line = read_input () in
-        let trimmed = String.trim line in
+        let trimmed = clean_input line in
         begin try
           let n = int_of_string trimmed in
           push (V_INT n)

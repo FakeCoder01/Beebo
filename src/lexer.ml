@@ -125,6 +125,7 @@ let trans_table =
   add S_NUM CC_EOS S_START;
 
   add S_REAL_FRAC CC_DIGIT S_REAL_FRAC;
+  add S_REAL_FRAC CC_LETTER S_ERROR;
   add S_REAL_FRAC CC_OTHER S_START;
   add S_REAL_FRAC CC_EOF S_START;
   add S_REAL_FRAC CC_EOS S_START;
@@ -310,6 +311,7 @@ let tokenize source =
   let col = ref 1 in
   let line_start = ref 0 in
   let errors = ref [] in
+  let is_digit_char c = c >= '0' && c <= '9' in
 
   let get_char i =
     if i < len then source.[i] else '\x00'
@@ -390,6 +392,8 @@ let tokenize source =
       let c = get_char !pos in
 
       if c = '/' then (
+        let slash_line = !line in
+        let slash_col = !col in
         advance ();
         let next_ch = if !pos < len then get_char !pos else '\x00' in
         if next_ch = '/' then (
@@ -402,18 +406,20 @@ let tokenize source =
           advance ();
           let rec skip_block () =
             if !pos >= len then (
-              errors := ("Unterminated block comment") :: !errors
+              errors := (Printf.sprintf "Unterminated block comment at line %d, col %d" slash_line slash_col) :: !errors
             ) else (
               let ch = get_char !pos in
-              advance ();
-              if ch = '*' && !pos < len && get_char !pos = '/' then (
+              if ch = '*' && !pos + 1 < len && get_char (!pos + 1) = '/' then (
+                advance ();
                 advance ();
                 scan ()
               ) else if ch = '\n' then (
                 newline ();
                 skip_block ()
-              ) else
+              ) else begin
+                advance ();
                 skip_block ()
+              end
             )
           in
           skip_block ()
@@ -546,12 +552,33 @@ let tokenize source =
             scan_from_state ()
           end
         | S_ERROR ->
-          if c = '"' then begin
+          if (!state = S_NUM || !state = S_REAL_FRAC) && (lookahead = 'e' || lookahead = 'E') then begin
+            let exp_line = !line in
+            let exp_col = !col in
+            Buffer.add_char lexbuf lookahead;
+            advance ();
+            if !pos < len && (get_char !pos = '+' || get_char !pos = '-') then begin
+              Buffer.add_char lexbuf (get_char !pos);
+              advance ()
+            end;
+            let digit_start = !pos in
+            while !pos < len && is_digit_char (get_char !pos) do
+              Buffer.add_char lexbuf (get_char !pos);
+              advance ()
+            done;
+            if !pos = digit_start then begin
+              errors := (Printf.sprintf "Invalid exponent in number at line %d, col %d" exp_line exp_col) :: !errors;
+              scan ()
+            end else begin
+              state := S_REAL_FRAC;
+              scan_from_state ()
+            end
+          end else if lookahead = '"' then begin
             errors := (Printf.sprintf "Unterminated string at line %d" !st_line) :: !errors;
             flush_token lexbuf S_STRING !st_line !st_col;
             scan ()
           end else begin
-            errors := (Printf.sprintf "Unexpected character '%c' at line %d, col %d" c !line !col) :: !errors;
+            errors := (Printf.sprintf "Unexpected character '%c' at line %d, col %d" lookahead !line !col) :: !errors;
             advance ();
             scan ()
           end

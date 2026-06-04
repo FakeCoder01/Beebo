@@ -1,404 +1,1049 @@
-# Beebo - A Interpreter in OCaml
+# Beebo Compiler-Interpreter
 
-Beebo (`.bbo`) is a simple procedural programming language with a table-driven compiler-interpreter written in OCaml. It features a **finite-state-machine lexical analyzer**, an **LL(1) predictive parser** using a **parse table**, and a **stack-machine OPS interpreter**.
+Beebo is a small procedural programming language and a compiler-interpreter written in OCaml. The project was prepared for a compiler construction laboratory work: it contains a finite-state lexical analyzer, an LL(1) table-driven parser, an OPS/RPN intermediate-code generator, and a stack-based interpreter.
 
-## Quick Start
+The repository is designed to be easy to check by a laboratory teacher. The source code demonstrates all main compiler stages, while the `docs/` and `examples/` folders provide the formal material and test programs required for the report.
 
-### Local Build (requires OCaml 4.13+)
+---
 
-```bash
-make build
+---
+
+## Documentation Language / Язык документации
+
+Click a language title to open or close the documentation section.
+
+<details open>
+<summary><strong>🇬🇧 English Documentation</strong></summary>
+
+## English Documentation
+
+### 1. Project Goal
+
+The goal of Beebo is to translate and execute programs written in the `.bbo` language.
+
+The implementation follows the classic compiler pipeline:
+
+1. Lexical analysis: source text is converted into a list of lexemes/tokens.
+2. Syntax analysis: tokens are parsed by a predictive parser using a parse table.
+3. Semantic actions: parser productions generate OPS/RPN instructions.
+4. Interpretation: OPS instructions are executed by a stack machine.
+
+This structure matches the practical work requirements:
+
+| Requirement | Beebo implementation |
+|---|---|
+| Lexical analyzer | `src/lexer.ml`, finite-state machine and transition table |
+| Lexeme table | `docs/lexemes.txt` |
+| Grammar | `src/grammar.ml`, `docs/grammar.txt` |
+| Parser table | `src/grammar.ml`, `parse_table` |
+| Store/pushdown automaton | `src/parser.ml`, task stack with `MATCH`, `PARSE`, `ACTION` |
+| OPS/RPN generation | `src/parser.ml`, semantic actions |
+| OPS interpreter | `src/interpreter.ml` |
+| Test programs | `examples/*.bbo` |
+| Error diagnostics | line/column lexical and syntax messages |
+
+### 2. Repository Structure
+
+```text
+beebo/
+  Dockerfile
+  Makefile
+  README.md
+  docs/
+    beebo_compiler_lab_workbook.xlsx
+    grammar.txt
+    lexemes.txt
+    ops.txt
+  examples/
+    demo.bbo
+    formula.bbo
+    sort_array.bbo
+    schema_test.bbo
+    block_comment.bbo
+    exponent_real.bbo
+    schema_name.bbo
+    ...
+  src/
+    types.ml
+    lexer.ml
+    grammar.ml
+    parser.ml
+    interpreter.ml
+    main.ml
 ```
 
-**Check examples**
+### 3. Build and Run
 
-```bash
-./src/beebo examples/demo.bbo
-./src/beebo --tokens examples/demo.bbo # shows lexemes
-./src/beebo --ops examples/demo.bbo # shows generated OPS
-```
+#### Docker build
 
-### Docker
+Docker is the most reliable way to run the project on Windows, Linux, or macOS.
 
 ```bash
 docker build -t beebo .
 docker run --rm beebo examples/demo.bbo
-echo "42" | docker run --rm -i beebo examples/demo.bbo
 ```
 
-> Take a look at `docs/` for a detailed language specification, architecture overview, and implementation notes.
+#### Local OCaml build
 
----
+Requires OCaml 4.13+.
 
-## Language Syntax
-
-### Variables
-
-No type declarations needed. Variables hold integers, reals, strings, or schemas dynamically.
-
+```bash
+make build
+./src/beebo examples/demo.bbo
 ```
-x = 42
-pi = 3.14159
+
+#### Show lexemes
+
+```bash
+docker run --rm beebo --tokens examples/demo.bbo
+```
+
+#### Show generated OPS/RPN
+
+```bash
+docker run --rm beebo --ops examples/demo.bbo
+```
+
+#### Run a program with input
+
+Linux/macOS:
+
+```bash
+printf "10\n" | docker run --rm -i beebo examples/formula.bbo
+```
+
+Windows `cmd`:
+
+```cmd
+type input.txt | docker run --rm -i beebo examples/formula.bbo
+```
+
+### 4. Language Overview
+
+Beebo is dynamically typed. Variables do not require declarations. A value can be an integer, real number, string, array, matrix, or schema object.
+
+#### Variables and assignment
+
+```beebo
+x = 42;
+pi = 3.14159;
 name = "Beebo"
 ```
 
-### Arithmetic
+#### Arithmetic
 
-Operators with standard precedence: `*`, `/` (higher) > `+`, `-` (lower). Parentheses override precedence. Division always produces a **real** result.
-
-```
-result = (a + b) * (c - d) / e
-neg = -x * y
+```beebo
+result = (a + b) * c - 10 / 2;
+negative = -result
 ```
 
-### Strings
+Supported arithmetic operators:
 
-- String literals use double quotes. Escape sequences: `\n` (newline), `\\` (backslash), `\"` (quote), `\t` (tab).
-- Strings can be concatenated with `+`. Numbers are auto-converted to strings in concatenation.
+| Operator | Meaning |
+|---|---|
+| `+` | addition or string concatenation |
+| `-` | subtraction or unary minus |
+| `*` | multiplication |
+| `/` | division, result is real |
 
-```
-greeting = "Hello, " + "World"
-output "Line 1\nLine 2"
-output "Value: " + x
-```
+Real literals support decimal and scientific notation:
 
-### Output
-
-`output` prints a value without adding a newline. Use `\n` in strings for line breaks:
-
-```
-output "Hello\n"          // prints "Hello" then newline
-output x                  // prints value of x
-output "x = " + x + "\n"  // concatenated output with newline
+```beebo
+a = 3.14;
+b = 1e3;
+c = 2.5e-1
 ```
 
-### Input
+#### Strings
 
-`input` reads a line and tries to parse it as **integer** → **real** → **string** (fallback).
-
-```
-input x                   // reads into variable
-input arr[0]              // reads into array element
+```beebo
+message = "Hello, " + "world\n";
+output message
 ```
 
-### Semicolons
+Supported escape sequences:
 
-Semicolons are **statement separators**. Place `;` between statements in the same block. The last statement before `}` or EOF does **not** need `;`.
+| Escape | Meaning |
+|---|---|
+| `\n` | newline |
+| `\t` | tab |
+| `\\` | backslash |
+| `\"` | double quote |
 
+#### Input and output
+
+`input` reads one line. The interpreter tries to convert it as integer, then real, then string.
+
+```beebo
+output "Enter x: ";
+input x;
+output "x * 2 = " + (x * 2) + "\n"
 ```
+
+Input is also cleaned from a UTF-8 BOM, which is useful when input files are produced on Windows.
+
+#### Semicolons
+
+Semicolons are statement separators, not mandatory terminators. Use `;` between statements in the same block. The final statement before `}` or EOF does not need `;`.
+
+```beebo
 x = 5;
 y = 10;
-output x + y // last statement, no ;
+output x + y
 ```
 
-After a block (`}`), use `;` before the next statement:
+After a block, use `;` before the next statement:
 
-```
-while (i < n) {
-  output arr[i];
-  i = i + 1
-};
-output "Done\n"        // ; separates block from next statement
-```
-
-### Arrays
-
-1D and 2D dynamic arrays. Arrays auto-allocate on first assignment; explicit declaration via `name[size]` is optional.
-
-**1D Arrays:**
-
-```
-arr[5]                    // declare array of size 5
-arr[n]                    // declare array of size n
-arr[0] = 42               // assign element
-x = arr[3]                // read element
-```
-
-**2D Arrays (matrices):**
-
-```
-mat[3][4]                 // declare 3x4 matrix (optional)
-mat[0][0] = 10            // assign element (auto-allocates if needed)
-mat[1][2] = 20
-x = mat[0][0]             // read element
-```
-
-### Schema (like structs)
-
-Define structured data with named fields:
-
-```
-schema Point {
-    x;
-    y
-};
-
-p = Point{x: 10, y: 20}; // create instance
-output p.x;              // field access → 10
-p.x = 42;                // field assignment
-output p.y;              // → 20
-
-```
-
-- **Definition**: `schema Name { field1; field2; };`
-- **Literal**: `Name{ field: value, ... }`
-- **Access**: `obj.field` in expressions
-- **Assignment**: `obj.field = value`
-
-Fields are separated by semicolons in the definition, and by commas in literals.
-
-### Conditionals
-
-```
-if (score >= 90) {
-  output "Grade: A\n"
-}
-
-if (x > y) {
-  output "greater\n"
-} else {
-  output "not greater\n"
-}
-```
-
-Compound conditions with `&&` (AND), `||` (OR), `!` (NOT):
-
-```
-if (a > 0 && b > 0) {
-  output "both positive\n"
-}
-```
-
-**Comparison operators :** `<`, `>`, `<=`, `>=`, `==`, `!=`
-
-### Loops
-
-**While loop:**
-
-```
-i = 0
-while (i < 10) {
+```beebo
+while (i < 5) {
   output i;
-  output "\n";
+  i = i + 1
+};
+output "\n"
+```
+
+#### Conditions
+
+```beebo
+if (x >= 10) {
+  output "large\n"
+} else {
+  output "small\n"
+}
+```
+
+Comparison and logical operators:
+
+| Operator | Meaning |
+|---|---|
+| `<`, `>`, `<=`, `>=` | numeric comparison |
+| `==`, `!=` | equality and inequality |
+| `&&` | logical AND |
+| `||` | logical OR |
+| `!` | logical NOT |
+
+#### Loops
+
+```beebo
+i = 0;
+while (i < 5) {
+  output i + " ";
   i = i + 1
 }
 ```
 
-**For loop:**
-
-```
+```beebo
 for (i = 0; i < 10; i = i + 1) {
   output i + " "
-};
-
-output "\n";
-
-for (i = 10; i > 0; i = i - 1) {
-  output i + " "
 }
-
-// Output
-// 0 1 2 3 4 5 6 7 8 9
-// 10 9 8 7 6 5 4 3 2 1
 ```
 
-### Functions
+#### Arrays and matrices
 
-User-defined functions with parameters and return values:
+Arrays are dynamic. They can be declared explicitly or created on first assignment.
 
+```beebo
+arr[5];
+arr[0] = 10;
+arr[1] = 20;
+output arr[0] + arr[1]
 ```
+
+Two-dimensional arrays are supported:
+
+```beebo
+mat[3][3];
+mat[0][0] = 1;
+mat[1][2] = 5;
+output mat[1][2]
+```
+
+#### Functions
+
+```beebo
 func square(x) {
-  return x \* x
-}
-
-func add(a, b) {
-  return a + b
-}
+  return x * x
+};
 
 func factorial(n) {
   if (n <= 1) {
     return 1
-  }
-return n \* factorial(n - 1)
-}
+  };
+  return n * factorial(n - 1)
+};
 
-output square(5);       // 25
-output "\n"
-output add(3, 4)        // 7
-output "\n"
-output factorial(5)     // 120
-output "\n"
+output square(5);
+output "\n";
+output factorial(5)
 ```
 
-Functions can have 0 or more parameters. `return` must be explicit. Functions can call themselves recursively.
+User-defined functions support parameters, return values, nested calls, and recursion.
 
-Functions called as statements (ignoring return value):
+#### Built-in functions
 
-```
-greet("Beebo") // call without using return value
-```
+Math and conversion functions:
 
-### Built-in Functions
+| Function | Description |
+|---|---|
+| `sqrt(x)` | square root |
+| `exp(x)` | exponential function |
+| `log(x)` | natural logarithm |
+| `sin(x)` | sine in radians |
+| `cos(x)` | cosine in radians |
+| `abs(x)` | absolute value |
+| `string(x)` | convert to string |
+| `real(x)` | convert to real |
+| `integer(x)` | convert to integer |
 
-**Math:**
+Terminal-oriented built-ins:
 
-- `sqrt(x)` - square root
-- `exp(x)` - e^x
-- `log(x)` - natural logarithm
-- `sin(x)` - sine (radians)
-- `cos(x)` - cosine (radians)
-- `abs(x)` - absolute value
+| Function | Description |
+|---|---|
+| `sleep(ms)` | pause execution |
+| `clear_screen()` | clear terminal |
+| `move_cursor(x, y)` | move cursor |
+| `get_key()` | read one key if available |
+| `cursor_hide()` / `cursor_show()` | hide or show cursor |
+| `set_color(fg)` / `set_color(fg, bg)` | set ANSI colors |
+| `reset_color()` | reset colors |
+| `term_width()` / `term_height()` | terminal size |
 
-**Type conversion:**
+#### Schemas
 
-- `string(x)` - convert any value to string
-- `real(x)` - convert to real (from int or string)
-- `integer(x)` - convert to integer (from real or string)
+Schemas are simple structured objects similar to records or structs.
 
-```
-x = sqrt(25.0)     // 5.0
-y = string(42)     // "42"
-z = real("3.14")   // 3.14
-w = integer(3.9)   // 3
-```
+```beebo
+schema Point {
+  x;
+  y
+};
 
-**Terminal control:**
-
-- `sleep(ms)` — pause for `ms` milliseconds
-- `clear_screen()` — clear terminal (ANSI `\033[2J\033[H`)
-- `move_cursor(x, y)` — move cursor to column `x`, row `y` (1-based)
-- `get_key()` — non-blocking read of a single keystroke; returns empty string if no key pressed
-- `cursor_hide()` / `cursor_show()` — hide/show terminal cursor
-- `set_color(fg)` / `set_color(fg, bg)` — set text/both colors (0–7)
-- `reset_color()` — reset to default color
-- `term_width()` / `term_height()` — terminal dimensions (from `$COLUMNS`/`$LINES`)
-
-```
-clear_screen();
-move_cursor(10, 5);
-set_color(2);
-output "Green text at (10,5)\n";
-reset_color()
+p = Point{x: 10, y: 20};
+output p.x;
+p.x = 42;
+output p
 ```
 
-### Comments
+Schema definitions use semicolons between field names. Schema literals use colon/comma syntax.
 
+```beebo
+schema Student {
+  name;
+  age;
+  marks
+};
+
+s = Student{name: "Alice", age: 20, marks: 95}
 ```
-// Single line comment
-/* Multi-line
-comment */
+
+The generated OPS now preserves the schema type name:
+
+```text
+PUSH_ADDR Point
+PUSH_STR "x"
+PUSH_INT 10
+PUSH_STR "y"
+PUSH_INT 20
+MAKE_SCHEMA Point
 ```
 
----
+### 5. Compiler Architecture
 
-## Architecture
+#### 5.1 Lexical analyzer
 
-The compiler-interpreter follows the classic **analysis-synthesis** model with three table-driven phases:
+File: `src/lexer.ml`
 
-### 1. Lexical Analyzer (`lexer.ml`)
+The lexer is implemented as a finite-state machine. The transition table maps:
 
-Finite-state machine with an explicit transition table `(state × character_class) → next_state`.
-
-- 10 states: START, ID, NUM, REAL_FRAC, STRING, OPERATOR, COMMENT, etc.
-- Character classes: LETTER, DIGIT, DOT, QUOTE, COLON, operators, delimiters
-- Keywords resolved via lookup table after identifier tokenization
-- Escape sequences (`\n`, `\\`, `\"`, `\t`) processed in string literals
-
-### 2. Parser & OPS Generator (`grammar.ml`, `parser.ml`)
-
-- **Grammar**: 102 productions in **non-strict Greibach Normal Form**
-- **Parse table**: `(nonterminal × terminal) → production` using LL(1) predictive parsing
-- **Store automaton**: Pushdown automaton using a task stack (MATCH, PARSE, ACTION tasks)
-- **OPS generation**: Semantic actions attached to each production emit postfix instructions
-
-### 3. OPS Interpreter (`interpreter.ml`)
-
-Stack machine executing OPS instructions:
-
-- **Memory**: PUSH_INT, PUSH_REAL, PUSH_STR, PUSH_ADDR, LOAD, STORE
-- **Arrays**: ALLOC_ARR, INDEX, INDEX2
-- **Schemas**: MAKE_SCHEMA, GET_FIELD, SET_FIELD
-- **Arithmetic**: ADD, SUB, MUL, DIV, NEG
-- **Comparison**: EQ, NE, LT, GT, LE, GE
-- **Logic**: AND, OR, NOT
-- **Control flow**: JMP, JMPF, LABEL
-- **Functions**: FUNC_ENTRY, CALL_USER, RET, ARG
-- **I/O**: INPUT_STR, OUTPUT
-- **Math**: CALL (sqrt, exp, log, sin, cos, abs)
-- **Terminal**: CALL_USER fallback (sleep, get_key, clear_screen, move_cursor, etc.)
-
-### Data Types
-
-| Type                     | Description                       |
-| ------------------------ | --------------------------------- |
-| `V_INT(n)`               | Integer                           |
-| `V_REAL(r)`              | Real (float)                      |
-| `V_STR(s)`               | String                            |
-| `V_ARR(arr)`             | 1D dynamic array                  |
-| `V_MAT(arr)`             | 2D matrix                         |
-| `V_SCHEMA(name, fields)` | Named struct with field hashtable |
-
-Arithmetic: automatic int→real promotion, division always yields real.
-String `+`: auto-converts non-string operands to string.
-Memory model: hash table mapping names → values.
-
----
-
-## Error Diagnostics
-
-The compiler provides error messages with:
-
-- **Line number** of the error
-- **Column number** of the erroneous symbol
-
+```text
+(state, character_class) -> next_state
 ```
+
+Main states:
+
+| State | Meaning |
+|---|---|
+| `S_START` | initial state |
+| `S_ID` | identifier or keyword |
+| `S_NUM` | integer part |
+| `S_REAL_FRAC` | real number |
+| `S_STRING` | string literal |
+| `S_OP` | operator or delimiter |
+| `S_COMMENT_LINE` | `//` comment |
+| `S_COMMENT_BLOCK` | `/* ... */` comment |
+| `S_COMMENT_BLOCK_END` | possible end of block comment |
+| `S_ERROR` | lexical error |
+
+The lexer supports:
+
+- identifiers and keywords;
+- integer and real literals;
+- scientific notation such as `1e10` and `2.5e-1`;
+- string literals with escape sequences;
+- single-line and multi-line comments;
+- line/column diagnostics.
+
+#### 5.2 Grammar and parse table
+
+Files: `src/grammar.ml`, `docs/grammar.txt`
+
+The grammar is left-factored and suitable for LL(1) predictive parsing. The parser table maps:
+
+```text
+(nonterminal, lookahead_terminal) -> production_id
+```
+
+The grammar uses helper nonterminals such as:
+
+- `ExprTail` for `+` and `-`;
+- `TermTail` for `*` and `/`;
+- `ArgListTail` for function arguments;
+- `FieldInitTail` for schema literal fields.
+
+This avoids left recursion and keeps expression precedence explicit.
+
+#### 5.3 Parser and semantic actions
+
+File: `src/parser.ml`
+
+The parser is table-driven. It uses a task stack:
+
+| Task | Meaning |
+|---|---|
+| `TASK_MATCH token` | match a terminal token |
+| `TASK_PARSE nonterminal` | expand a nonterminal using the parse table |
+| `TASK_ACTION f` | execute a semantic action |
+
+Semantic actions generate OPS instructions while parsing. For example:
+
+```beebo
+x = a + b * 2
+```
+
+is translated into stack-machine operations similar to:
+
+```text
+PUSH_ADDR x
+PUSH_ADDR a
+LOAD
+PUSH_ADDR b
+LOAD
+PUSH_INT 2
+MUL
+ADD
+STORE
+HALT
+```
+
+#### 5.4 OPS interpreter
+
+File: `src/interpreter.ml`
+
+OPS is a stack-based intermediate representation. The interpreter keeps:
+
+- an instruction pointer;
+- a data stack;
+- a memory table;
+- a label table for jumps;
+- a function table for user-defined functions.
+
+Important instruction groups:
+
+| Group | Instructions |
+|---|---|
+| Constants and memory | `PUSH_INT`, `PUSH_REAL`, `PUSH_STR`, `PUSH_ADDR`, `LOAD`, `STORE` |
+| Arithmetic | `ADD`, `SUB`, `MUL`, `DIV`, `NEG` |
+| Logic and comparison | `EQ`, `NE`, `LT`, `GT`, `LE`, `GE`, `AND`, `OR`, `NOT` |
+| Control flow | `LABEL`, `JMP`, `JMPF`, `HALT` |
+| Functions | `FUNC_ENTRY`, `CALL_USER`, `ARG`, `RET` |
+| Schemas | `MAKE_SCHEMA`, `GET_FIELD`, `SET_FIELD` |
+| Arrays | `ALLOC_ARR`, `INDEX`, `INDEX2` |
+| I/O | `INPUT_STR`, `OUTPUT` |
+
+Runtime errors are printed to stderr and the program exits with code `1`.
+
+### 6. Diagnostics
+
+Lexical and syntax errors include line and column information:
+
+```text
 === SYNTAX ERRORS ===
-Syntax error at line 10, col 15: expected ')', got ';' (';')
+Syntax error at line 6, col 15: expected ')', got ';' (';')
+Parsing failed. Fix errors and try again.
 ```
 
----
+Unterminated block comments also report their starting position:
 
-## CLI Options
-
-```
-beebo [options] <file.bbo>
---tokens Print token list after lexical analysis
---ops Print generated OPS (Polish notation) code
---run Execute the program (default)
---help Show help
+```text
+Unterminated block comment at line 3, col 5
 ```
 
----
+### 7. Examples and Tests
 
-## Implementation Notes
+Recommended checks:
 
-### Grammar in Greibach Normal Form
-
-The original grammar had left recursion in expression productions. After elimination and left-factoring (non-strict Greibach form):
-
-```
-Expr → Term ExprTail
-ExprTail → + Term ExprTail | - Term ExprTail | ε
-Term → Factor TermTail
-TermTail → \* Factor TermTail | / Factor TermTail | ε
+```bash
+docker build -t beebo .
+docker run --rm beebo examples/demo.bbo
+docker run --rm beebo examples/block_comment.bbo
+docker run --rm beebo examples/exponent_real.bbo
+docker run --rm beebo examples/schema_name.bbo
+docker run --rm beebo --ops examples/schema_name.bbo
 ```
 
-### Parse Table
+Input examples:
 
-The parse table maps `(nonterminal, terminal) → production_id`:
-
-```
-add_set NT_STMT [T_KW_IF] 5 // Stmt → IfStmt when seeing 'if'
-add_set NT_STMT [T_KW_FUNC] 72 // Stmt → FuncDef when seeing 'func'
+```bash
+printf "10\n" | docker run --rm -i beebo examples/formula.bbo
+printf "5\n3\n1\n4\n2\n5\n" | docker run --rm -i beebo examples/sort_array.bbo
 ```
 
-### OPS Stack Convention
+Local test targets:
 
-**First pushed = bottom (base/address), second pushed = top (value/index)**.
+```bash
+make test-all
+```
 
-- STORE: pop value (top), pop address → store value at address
-- INDEX: pop index (top), pop base → push ADDR_ARR
-- ALLOC: pop size (top), pop name → allocate array
-- GET_FIELD: pop schema (top), push field value
-- SET_FIELD: pop value (top), pop schema → mutate field, push schema
-- MAKE_SCHEMA: pop field pairs, pop type name → push V_SCHEMA
+`examples/error.bbo` is an expected negative test. It should produce syntax errors and exit with code `1`.
+
+### 8. Recent Fixes
+
+The current version includes the following corrections:
+
+| Area | Fix |
+|---|---|
+| Block comments | Multi-line `/* ... */` comments now handle newlines correctly |
+| Real literals | Scientific notation is supported, for example `1e3`, `2.5e-1` |
+| Schema literals | `MAKE_SCHEMA` preserves the real schema name |
+| Runtime errors | Runtime failures now return exit code `1` |
+| Windows input | UTF-8 BOM is stripped from input lines before numeric conversion |
+| Grammar helpers | Redundant and partial pattern matches were cleaned up |
+| Tests | Makefile test targets were made more deterministic |
+| Documentation | Grammar, lexeme, and schema literal documentation were synchronized with code |
+
+### 9. Known Limitations
+
+- The language is dynamically typed; there is no static type checker.
+- The parser is LL(1) and table-driven, but the documented grammar is an implementation grammar with helper nonterminals, not a mathematically strict Greibach-only listing.
+- Terminal control functions depend on ANSI terminal behavior.
+- Arrays grow dynamically and perform forgiving reads for out-of-range values.
+
+</details>
+
+<details>
+<summary><strong>🇷🇺 Русская Документация</strong></summary>
+
+## Русская Документация
+
+### 1. Цель проекта
+
+Beebo — это небольшой процедурный язык программирования и компилятор-интерпретатор, написанный на OCaml. Проект подготовлен для лабораторной работы по теме компиляторов: в нем реализованы лексический анализатор на конечном автомате, табличный LL(1)-синтаксический анализатор, генератор ОПС/обратной польской записи и стековый интерпретатор.
+
+Основная цель проекта — выполнить перевод и исполнение программ на языке `.bbo`.
+
+Общая цепочка обработки:
+
+1. Лексический анализ: исходный текст преобразуется в список лексем.
+2. Синтаксический анализ: список лексем разбирается табличным предиктивным анализатором.
+3. Семантические действия: при применении продукций генерируется ОПС.
+4. Интерпретация: ОПС выполняется стековой машиной.
+
+Соответствие требованиям лабораторной работы:
+
+| Требование | Реализация в Beebo |
+|---|---|
+| Лексический анализатор | `src/lexer.ml`, конечный автомат и таблица переходов |
+| Таблица лексем | `docs/lexemes.txt` |
+| Грамматика | `src/grammar.ml`, `docs/grammar.txt` |
+| Таблица разбора | `src/grammar.ml`, `parse_table` |
+| Магазинный автомат | `src/parser.ml`, стек задач `MATCH`, `PARSE`, `ACTION` |
+| Генерация ОПС | `src/parser.ml`, семантические действия |
+| Интерпретатор ОПС | `src/interpreter.ml` |
+| Тестовые программы | `examples/*.bbo` |
+| Диагностика ошибок | сообщения с номером строки и столбца |
+
+### 2. Структура проекта
+
+```text
+beebo/
+  Dockerfile
+  Makefile
+  README.md
+  docs/
+    beebo_compiler_lab_workbook.xlsx
+    grammar.txt
+    lexemes.txt
+    ops.txt
+  examples/
+    demo.bbo
+    formula.bbo
+    sort_array.bbo
+    schema_test.bbo
+    block_comment.bbo
+    exponent_real.bbo
+    schema_name.bbo
+    ...
+  src/
+    types.ml
+    lexer.ml
+    grammar.ml
+    parser.ml
+    interpreter.ml
+    main.ml
+```
+
+### 3. Сборка и запуск
+
+#### Сборка через Docker
+
+Docker является самым надежным способом запуска проекта на Windows, Linux и macOS.
+
+```bash
+docker build -t beebo .
+docker run --rm beebo examples/demo.bbo
+```
+
+#### Локальная сборка OCaml
+
+Требуется OCaml 4.13+.
+
+```bash
+make build
+./src/beebo examples/demo.bbo
+```
+
+#### Вывод списка лексем
+
+```bash
+docker run --rm beebo --tokens examples/demo.bbo
+```
+
+#### Вывод сгенерированной ОПС
+
+```bash
+docker run --rm beebo --ops examples/demo.bbo
+```
+
+#### Запуск программы с входными данными
+
+Linux/macOS:
+
+```bash
+printf "10\n" | docker run --rm -i beebo examples/formula.bbo
+```
+
+Windows `cmd`:
+
+```cmd
+type input.txt | docker run --rm -i beebo examples/formula.bbo
+```
+
+### 4. Обзор языка
+
+Beebo использует динамическую типизацию. Переменные не требуют предварительного объявления. Значение может быть целым числом, вещественным числом, строкой, массивом, матрицей или объектом схемы.
+
+#### Переменные и присваивание
+
+```beebo
+x = 42;
+pi = 3.14159;
+name = "Beebo"
+```
+
+#### Арифметика
+
+```beebo
+result = (a + b) * c - 10 / 2;
+negative = -result
+```
+
+Поддерживаемые операции:
+
+| Оператор | Значение |
+|---|---|
+| `+` | сложение или конкатенация строк |
+| `-` | вычитание или унарный минус |
+| `*` | умножение |
+| `/` | деление, результат вещественный |
+
+Вещественные литералы поддерживают десятичную и экспоненциальную форму:
+
+```beebo
+a = 3.14;
+b = 1e3;
+c = 2.5e-1
+```
+
+#### Строки
+
+```beebo
+message = "Hello, " + "world\n";
+output message
+```
+
+Поддерживаемые escape-последовательности:
+
+| Escape | Значение |
+|---|---|
+| `\n` | новая строка |
+| `\t` | табуляция |
+| `\\` | обратная косая черта |
+| `\"` | двойная кавычка |
+
+#### Ввод и вывод
+
+`input` читает одну строку. Интерпретатор пытается преобразовать ее сначала в целое число, затем в вещественное, затем оставляет как строку.
+
+```beebo
+output "Enter x: ";
+input x;
+output "x * 2 = " + (x * 2) + "\n"
+```
+
+Перед преобразованием входная строка очищается от UTF-8 BOM, что полезно при работе с файлами ввода, созданными на Windows.
+
+#### Точки с запятой
+
+Точка с запятой является разделителем операторов, а не обязательным завершителем каждой строки. Ее нужно ставить между операторами одного блока. Последний оператор перед `}` или концом файла может быть без `;`.
+
+```beebo
+x = 5;
+y = 10;
+output x + y
+```
+
+После блока перед следующим оператором используется `;`:
+
+```beebo
+while (i < 5) {
+  output i;
+  i = i + 1
+};
+output "\n"
+```
+
+#### Условия
+
+```beebo
+if (x >= 10) {
+  output "large\n"
+} else {
+  output "small\n"
+}
+```
+
+Операторы сравнения и логические операторы:
+
+| Оператор | Значение |
+|---|---|
+| `<`, `>`, `<=`, `>=` | числовое сравнение |
+| `==`, `!=` | равенство и неравенство |
+| `&&` | логическое И |
+| `||` | логическое ИЛИ |
+| `!` | логическое НЕ |
+
+#### Циклы
+
+```beebo
+i = 0;
+while (i < 5) {
+  output i + " ";
+  i = i + 1
+}
+```
+
+```beebo
+for (i = 0; i < 10; i = i + 1) {
+  output i + " "
+}
+```
+
+#### Массивы и матрицы
+
+Массивы являются динамическими. Их можно объявлять явно или создавать при первом присваивании.
+
+```beebo
+arr[5];
+arr[0] = 10;
+arr[1] = 20;
+output arr[0] + arr[1]
+```
+
+Двумерные массивы также поддерживаются:
+
+```beebo
+mat[3][3];
+mat[0][0] = 1;
+mat[1][2] = 5;
+output mat[1][2]
+```
+
+#### Функции
+
+```beebo
+func square(x) {
+  return x * x
+};
+
+func factorial(n) {
+  if (n <= 1) {
+    return 1
+  };
+  return n * factorial(n - 1)
+};
+
+output square(5);
+output "\n";
+output factorial(5)
+```
+
+Пользовательские функции поддерживают параметры, возвращаемые значения, вложенные вызовы и рекурсию.
+
+#### Встроенные функции
+
+Математические функции и преобразования типов:
+
+| Функция | Описание |
+|---|---|
+| `sqrt(x)` | квадратный корень |
+| `exp(x)` | экспонента |
+| `log(x)` | натуральный логарифм |
+| `sin(x)` | синус в радианах |
+| `cos(x)` | косинус в радианах |
+| `abs(x)` | модуль |
+| `string(x)` | преобразование в строку |
+| `real(x)` | преобразование в вещественное число |
+| `integer(x)` | преобразование в целое число |
+
+Терминальные функции:
+
+| Функция | Описание |
+|---|---|
+| `sleep(ms)` | пауза выполнения |
+| `clear_screen()` | очистка терминала |
+| `move_cursor(x, y)` | перемещение курсора |
+| `get_key()` | чтение одной клавиши, если она доступна |
+| `cursor_hide()` / `cursor_show()` | скрыть или показать курсор |
+| `set_color(fg)` / `set_color(fg, bg)` | установка ANSI-цветов |
+| `reset_color()` | сброс цветов |
+| `term_width()` / `term_height()` | размеры терминала |
+
+#### Схемы
+
+Схемы — это простые структурированные объекты, похожие на записи или структуры.
+
+```beebo
+schema Point {
+  x;
+  y
+};
+
+p = Point{x: 10, y: 20};
+output p.x;
+p.x = 42;
+output p
+```
+
+В определении схемы поля разделяются точкой с запятой. В литерале схемы используется синтаксис `поле: значение`, а поля разделяются запятыми.
+
+```beebo
+schema Student {
+  name;
+  age;
+  marks
+};
+
+s = Student{name: "Alice", age: 20, marks: 95}
+```
+
+Сгенерированная ОПС сохраняет имя типа схемы:
+
+```text
+PUSH_ADDR Point
+PUSH_STR "x"
+PUSH_INT 10
+PUSH_STR "y"
+PUSH_INT 20
+MAKE_SCHEMA Point
+```
+
+### 5. Архитектура компилятора
+
+#### 5.1 Лексический анализатор
+
+Файл: `src/lexer.ml`
+
+Лексер реализован как конечный автомат. Таблица переходов имеет вид:
+
+```text
+(состояние, класс_символа) -> новое_состояние
+```
+
+Основные состояния:
+
+| Состояние | Значение |
+|---|---|
+| `S_START` | начальное состояние |
+| `S_ID` | идентификатор или ключевое слово |
+| `S_NUM` | целая часть числа |
+| `S_REAL_FRAC` | вещественное число |
+| `S_STRING` | строковый литерал |
+| `S_OP` | оператор или разделитель |
+| `S_COMMENT_LINE` | комментарий `//` |
+| `S_COMMENT_BLOCK` | комментарий `/* ... */` |
+| `S_COMMENT_BLOCK_END` | возможное завершение блочного комментария |
+| `S_ERROR` | лексическая ошибка |
+
+Лексер поддерживает:
+
+- идентификаторы и ключевые слова;
+- целые и вещественные литералы;
+- экспоненциальную запись чисел, например `1e10` и `2.5e-1`;
+- строковые литералы с escape-последовательностями;
+- однострочные и многострочные комментарии;
+- диагностику с номером строки и столбца.
+
+#### 5.2 Грамматика и таблица разбора
+
+Файлы: `src/grammar.ml`, `docs/grammar.txt`
+
+Грамматика факторизована и подходит для LL(1)-предиктивного разбора. Таблица разбора имеет вид:
+
+```text
+(нетерминал, текущий_терминал) -> номер_продукции
+```
+
+Для устранения левой рекурсии и сохранения приоритетов используются вспомогательные нетерминалы:
+
+- `ExprTail` для `+` и `-`;
+- `TermTail` для `*` и `/`;
+- `ArgListTail` для списка аргументов;
+- `FieldInitTail` для полей литерала схемы.
+
+#### 5.3 Парсер и семантические действия
+
+Файл: `src/parser.ml`
+
+Парсер является табличным. Он использует стек задач:
+
+| Задача | Значение |
+|---|---|
+| `TASK_MATCH token` | сопоставить терминальный символ |
+| `TASK_PARSE nonterminal` | раскрыть нетерминал по таблице разбора |
+| `TASK_ACTION f` | выполнить семантическое действие |
+
+Семантические действия генерируют ОПС во время разбора.
+
+Пример:
+
+```beebo
+x = a + b * 2
+```
+
+соответствует последовательности:
+
+```text
+PUSH_ADDR x
+PUSH_ADDR a
+LOAD
+PUSH_ADDR b
+LOAD
+PUSH_INT 2
+MUL
+ADD
+STORE
+HALT
+```
+
+#### 5.4 Интерпретатор ОПС
+
+Файл: `src/interpreter.ml`
+
+ОПС — это стековое промежуточное представление. Интерпретатор хранит:
+
+- указатель текущей инструкции;
+- стек данных;
+- таблицу памяти;
+- таблицу меток;
+- таблицу пользовательских функций.
+
+Основные группы инструкций:
+
+| Группа | Инструкции |
+|---|---|
+| Константы и память | `PUSH_INT`, `PUSH_REAL`, `PUSH_STR`, `PUSH_ADDR`, `LOAD`, `STORE` |
+| Арифметика | `ADD`, `SUB`, `MUL`, `DIV`, `NEG` |
+| Логика и сравнение | `EQ`, `NE`, `LT`, `GT`, `LE`, `GE`, `AND`, `OR`, `NOT` |
+| Управление | `LABEL`, `JMP`, `JMPF`, `HALT` |
+| Функции | `FUNC_ENTRY`, `CALL_USER`, `ARG`, `RET` |
+| Схемы | `MAKE_SCHEMA`, `GET_FIELD`, `SET_FIELD` |
+| Массивы | `ALLOC_ARR`, `INDEX`, `INDEX2` |
+| Ввод/вывод | `INPUT_STR`, `OUTPUT` |
+
+При runtime-ошибке сообщение выводится в stderr, а программа завершается с кодом `1`.
+
+### 6. Диагностика ошибок
+
+Лексические и синтаксические ошибки содержат номер строки и столбца:
+
+```text
+=== SYNTAX ERRORS ===
+Syntax error at line 6, col 15: expected ')', got ';' (';')
+Parsing failed. Fix errors and try again.
+```
+
+Незавершенный блочный комментарий сообщает позицию начала комментария:
+
+```text
+Unterminated block comment at line 3, col 5
+```
+
+### 7. Примеры и тесты
+
+Рекомендуемые проверки:
+
+```bash
+docker build -t beebo .
+docker run --rm beebo examples/demo.bbo
+docker run --rm beebo examples/block_comment.bbo
+docker run --rm beebo examples/exponent_real.bbo
+docker run --rm beebo examples/schema_name.bbo
+docker run --rm beebo --ops examples/schema_name.bbo
+```
+
+Примеры с входными данными:
+
+```bash
+printf "10\n" | docker run --rm -i beebo examples/formula.bbo
+printf "5\n3\n1\n4\n2\n5\n" | docker run --rm -i beebo examples/sort_array.bbo
+```
+
+Локальные цели Makefile:
+
+```bash
+make test-all
+```
+
+`examples/error.bbo` является отрицательным тестом. Он должен вывести синтаксические ошибки и завершиться с кодом `1`.
+
+### 8. Последние исправления
+
+| Область | Исправление |
+|---|---|
+| Блочные комментарии | Многострочные комментарии `/* ... */` теперь корректно обрабатывают переносы строк |
+| Вещественные литералы | Добавлена поддержка экспоненциальной записи: `1e3`, `2.5e-1` |
+| Схемы | `MAKE_SCHEMA` сохраняет имя типа схемы |
+| Runtime-ошибки | Ошибки выполнения теперь возвращают код выхода `1` |
+| Ввод на Windows | UTF-8 BOM удаляется перед числовым преобразованием |
+| Грамматика | Удалены избыточные и неполные pattern matching случаи |
+| Тесты | Цели Makefile стали более детерминированными |
+| Документация | Описание грамматики, лексем и схем синхронизировано с кодом |
+
+### 9. Известные ограничения
+
+- Язык динамически типизирован; статического контроля типов нет.
+- Парсер является LL(1) и табличным, но документированная грамматика является реализационной грамматикой со вспомогательными нетерминалами, а не строго математической формой только Грейбах.
+- Терминальные функции зависят от поддержки ANSI-последовательностей.
+- Массивы расширяются динамически, а чтение за пределами массива выполняется в мягком режиме.
+
+</details>

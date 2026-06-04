@@ -1,6 +1,6 @@
 ===========================================================================
                 BEEBO LANGUAGE — KS GRAMMAR
-            (Transformed to Non-strict Greibach Normal Form)
+             (LL(1) factored grammar and parser table)
 ===========================================================================
 
 ORIGINAL GRAMMAR (before left-recursion elimination)
@@ -29,8 +29,8 @@ ReturnStmt     → return Expr
 SchemaDef      → schema id { FieldList }
 FieldList      → id FieldRest
 FieldRest      → ; id FieldRest | ε
-FieldInitList  → id = Expr FieldInitTail
-FieldInitTail  → ; id = Expr FieldInitTail | ε
+FieldInitList  → id : Expr FieldInitTail
+FieldInitTail  → , id : Expr FieldInitTail | ε
 LValue         → id LValueRest
 LValueRest     → [ Expr ] LValueArr | ε
 LValueArr      → [ Expr ] | ε
@@ -54,11 +54,14 @@ ArgList        → Expr ArgListTail | ε
 ArgListTail    → , Expr ArgListTail | ε
 
 
-GRAMMAR IN NON-STRICT GREIBACH NORMAL FORM
+LL(1) FACTORED GRAMMAR USED BY THE PARSER
 (after left recursion elimination and left factoring)
 ----------------------------------------------------
-Non-strict Greibach Normal Form requires that all productions
-start with a terminal symbol. Epsilon productions are allowed.
+This grammar is the implementation grammar used by the predictive
+parser and parse table. It is intentionally factored into helper
+nonterminals such as ExprTail and TermTail. Productions beginning
+with helper nonterminals are expanded through FIRST/FOLLOW table
+entries during parsing.
 
   Program → StmtList EOF                                       (0)
 
@@ -187,9 +190,17 @@ FactorRest → . id FactorRest                                    (92)
 
 FactorRest → { FieldInitList }                                  (93)
 
-FieldInitList → id = Expr FieldInitTail                         (94)
-FieldInitTail → ; id = Expr FieldInitTail                       (95)
-FieldInitTail → ε                                               (96)
+FieldInitList → id : Expr FieldInitTail                         (94)
+FieldInitList → ε                                               (95)
+FieldInitTail → , id : Expr FieldInitTail                       (96)
+FieldInitTail → ε                                               (97)
+
+FuncName → string                                               (98)
+FuncName → real                                                 (99)
+FuncName → integer                                             (100)
+
+AssignArr2 → = Expr                                            (101)
+AssignArr2 → ε                                                 (102)
 
 
 NOTES:
@@ -198,4 +209,6 @@ NOTES:
 - Expression precedence: - (unary) > *, / > +, -
 - Operators *, / have higher priority than +, -
 - Parentheses can override default precedence
-- All productions start with terminals (Greibach form property)
+- The grammar is stored together with a predictive parse table in src/grammar.ml
+- Epsilon productions are used for optional tails and empty argument lists
+- Schema literals use colon/comma syntax: Point{x: 10, y: 20}

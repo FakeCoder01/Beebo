@@ -154,6 +154,7 @@ let () =
     let runtime_errors = interpret ops [] in
     if runtime_errors <> [] then (
       Printf.eprintf "=== RUNTIME ERRORS ===\n";
-      List.iter (fun e -> Printf.eprintf "%s\n" e) runtime_errors
+      List.iter (fun e -> Printf.eprintf "%s\n" e) runtime_errors;
+      exit 1
     )
   )
