@@ -10,7 +10,7 @@ Beebo (`.bbo`) is a simple procedural programming language with a table-driven c
 make build
 ```
 
-** Check examples**
+**Check examples**
 
 ```bash
 ./src/beebo examples/demo.bbo
@@ -25,6 +25,8 @@ docker build -t beebo .
 docker run --rm beebo examples/demo.bbo
 echo "42" | docker run --rm -i beebo examples/demo.bbo
 ```
+
+> Take a look at `docs/` for a detailed language specification, architecture overview, and implementation notes.
 
 ---
 
@@ -127,8 +129,8 @@ Define structured data with named fields:
 
 ```
 schema Point {
-  x;
-  y
+    x;
+    y
 };
 
 p = Point{x: 10, y: 20}; // create instance
