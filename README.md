@@ -1,4 +1,4 @@
-[ 🇷🇺Russian](#beebo-—-интерпретатор-на-ocaml)
+[ 🇷🇺 Russian](#beebo--интерпретатор-на-ocaml)
 
 # Beebo - A Interpreter in OCaml
 
